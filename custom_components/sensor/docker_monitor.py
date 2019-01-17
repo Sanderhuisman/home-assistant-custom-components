@@ -201,7 +201,7 @@ class DockerContainerApi(threading.Thread):
                 ret['online_cpus'] = len(raw_stats['cpu_stats']['cpu_usage']['percpu_usage'] or [])
         except KeyError as e:
             # raw_stats do not have CPU information
-            _LOGGER.error("Cannot grab CPU usage for container {} ({})".format(self._container.id, e))
+            _LOGGER.info("Cannot grab CPU usage for container {} ({})".format(self._container.id, e))
             _LOGGER.debug(raw_stats)
         else:
             if not hasattr(self, 'cpu_old'):
@@ -231,7 +231,7 @@ class DockerContainerApi(threading.Thread):
             ret['max_usage'] = raw_stats['memory_stats']['max_usage']
         except (KeyError, TypeError) as e:
             # raw_stats do not have MEM information
-            _LOGGER.error("Cannot grab MEM usage for container {} ({})".format(self._container.id, e))
+            _LOGGER.info("Cannot grab MEM usage for container {} ({})".format(self._container.id, e))
             _LOGGER.debug(raw_stats)
         else:
             ret['usage_percent'] = round(float(ret['usage']) / float(ret['limit']) * 100.0, PRECISION)
@@ -245,7 +245,7 @@ class DockerContainerApi(threading.Thread):
             netcounters = raw_stats["networks"]
         except KeyError as e:
             # raw_stats do not have NETWORK information
-            _LOGGER.error("Cannot grab NET usage for container {} ({})".format(self._container.id, e))
+            _LOGGER.info("Cannot grab NET usage for container {} ({})".format(self._container.id, e))
             _LOGGER.debug(raw_stats)
         else:
             if not hasattr(self, 'inetcounters_old'):
@@ -261,7 +261,7 @@ class DockerContainerApi(threading.Thread):
                 network_new['cumulative_rx'] = netcounters['eth0']['rx_bytes']
                 network_new['cumulative_tx'] = netcounters['eth0']['tx_bytes']
             except KeyError as e:
-                _LOGGER.debug("Cannot grab network interface usage for container {} ({})".format(self._container.id, e))
+                _LOGGER.info("Cannot grab network interface usage for container {} ({})".format(self._container.id, e))
                 _LOGGER.debug(raw_stats)
 
             self.netcounters_old = netcounters
@@ -275,7 +275,7 @@ class DockerContainerApi(threading.Thread):
             iocounters = raw_stats['blkio_stats']
         except KeyError as e:
             # raw_stats do not have io information
-            _LOGGER.error("Cannot grab block IO usage for container {} ({})".format(self._container.id, e))
+            _LOGGER.info("Cannot grab block IO usage for container {} ({})".format(self._container.id, e))
             _LOGGER.debug(raw_stats)
             return io_new
         else:
@@ -293,7 +293,7 @@ class DockerContainerApi(threading.Thread):
                 ior_old = [i for i in self.iocounters_old['io_service_bytes_recursive'] if i['op'] == 'Read'][0]['value']
                 iow_old = [i for i in self.iocounters_old['io_service_bytes_recursive'] if i['op'] == 'Write'][0]['value']
             except (TypeError, IndexError, KeyError) as e:
-                _LOGGER.debug("Cannot grab block IO usage for container {} ({})".format(self._container.id, e))
+                _LOGGER.info("Cannot grab block IO usage for container {} ({})".format(self._container.id, e))
             else:
                 io_new['ior'] = ior - ior_old
                 io_new['iow'] = iow - iow_old
