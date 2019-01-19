@@ -28,8 +28,6 @@ sensor:
       - container_memory_usage
       - container_memory_percentage_usage
       - container_cpu_percentage_usage
-      - container_network_up
-      - container_network_down
 ```
 
 ##### Configuration variables
@@ -44,11 +42,9 @@ sensor:
 | --------------------------------- | --------------------- | ----- |
 | utilization_version               | Docker version        | -     |
 | container_status                  | Container status      | -     |
-| container_memory_usage            | Memory usage          | bytes |
+| container_memory_usage            | Memory usage          | MB    |
 | container_memory_percentage_usage | Memory usage          | %     |
 | container_cpu_percentage_usage    | CPU usage             | %     |
-| container_network_up              | Network upstream      | kB    |
-| container_network_down            | Network downstream    | kB    |
 
 ## About
 
