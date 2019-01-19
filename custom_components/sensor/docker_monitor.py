@@ -50,7 +50,7 @@ _UTILISATION_MON_COND = {
 
 _CONTAINER_MON_COND = {
     CONTAINER_MONITOR_STATUS            : ['Status'                 , None      , 'mdi:checkbox-marked-circle-outline'  ],
-    CONTAINER_MONITOR_MEMORY_USAGE      : ['Memory use'             , 'bytes'   , 'mdi:memory'                          ],
+    CONTAINER_MONITOR_MEMORY_USAGE      : ['Memory use'             , 'MB'      , 'mdi:memory'                          ],
     CONTAINER_MONITOR_MEMORY_PERCENTAGE : ['Memory use (percent)'   , '%'       , 'mdi:memory'                          ],
     CONTAINER_MONITOR_CPU_PERCENTAGE    : ['CPU use'                , '%'       , 'mdi:chip'                            ],
 }
@@ -168,19 +168,9 @@ class DockerContainerApi(threading.Thread):
         if stats['status'] in ('running', 'paused'):
             stats['cpu']            = self._get_docker_cpu(raw_stats)
             stats['memory']         = self._get_docker_memory(raw_stats)
-
-            stats['cpu_percent']    = stats['cpu'].get('total', None)
-            stats['memory_usage']   = stats['memory'].get('usage', None)
-            stats['memory_percent'] = stats['memory'].get('usage_percent', None)
         else:
             stats['cpu']            = {}
             stats['memory']         = {}
-            stats['io']             = {}
-            stats['network']        = {}
-
-            stats['cpu_percent']    = None
-            stats['memory_usage']   = None
-            stats['memory_percent'] = None
 
         self._stats = stats
 
@@ -336,11 +326,15 @@ class DockerContainerSensor(Entity):
         if self._var_id == CONTAINER_MONITOR_STATUS:
             self._state                         = stats.get('status', None)
         elif self._var_id == CONTAINER_MONITOR_CPU_PERCENTAGE:
-            self._state                         = stats.get('cpu_percent', None)
+            self._state                         = stats.get('cpu', {}).get('total')
         elif self._var_id == CONTAINER_MONITOR_MEMORY_USAGE:
-            self._state                         = stats.get('memory_usage', None)
+            use  = stats.get('memory', {}).get('usage')
+            if use is not None:
+                self._state = round(use / (1024 ** 2)) # Bytes to MB
+            else:
+                self._state = None
         elif self._var_id == CONTAINER_MONITOR_MEMORY_PERCENTAGE:
-            self._state                         = stats.get('memory_percent', None)
+            self._state                         = stats.get('memory', {}).get('usage_percent')
 
         if self._var_id in (CONTAINER_MONITOR_CPU_PERCENTAGE):
             cpus = stats.get('cpu', {}).get('online_cpus')
