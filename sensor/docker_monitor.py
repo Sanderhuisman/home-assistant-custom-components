@@ -308,7 +308,13 @@ class DockerContainerSensor(Entity):
     @property
     def icon(self):
         """Icon to use in the frontend, if any."""
-        return self._var_icon
+        if self._var_id == CONTAINER_MONITOR_STATUS:
+            if self._state == 'running':
+                return 'mdi:checkbox-marked-circle-outline'
+            else:
+                return 'mdi:checkbox-blank-circle-outline'
+        else:        
+            return self._var_icon
 
     @property
     def state(self):
