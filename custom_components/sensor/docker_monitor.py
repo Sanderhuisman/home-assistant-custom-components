@@ -1,7 +1,6 @@
 import logging
 from datetime import timedelta
 
-import os
 import threading
 import time
 
@@ -16,9 +15,10 @@ from homeassistant.const import (
     EVENT_HOMEASSISTANT_STOP
 )
 from homeassistant.helpers.entity import Entity
-from homeassistant.util import Throttle
+import homeassistant.util.dt as dt_util
 
-REQUIREMENTS = ['docker==3.7.0']
+
+REQUIREMENTS = ['docker==3.7.0', 'python-dateutil==2.7.5']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,7 +26,14 @@ DEFAULT_HOST        = 'unix://var/run/docker.sock'
 CONF_CONTAINERS     = 'containers'
 
 CONF_ATTRIBUTION    = 'Data provided by Docker'
-ATTR_ONLINE_CPUS    = 'online_cpus'
+
+ATTR_VERSION_API    = 'Api_version'
+ATTR_VERSION_OS     = 'Os'
+ATTR_VERSION_ARCH   = 'Architecture'
+ATTR_ONLINE_CPUS    = 'Online_CPUs'
+ATTR_MEMORY_LIMIT   = 'Memory_limit'
+ATTR_CREATED        = 'Created'
+ATTR_STARTED_AT     = 'Started_at'
 
 PRECISION           = 2
 
@@ -36,8 +43,6 @@ CONTAINER_MONITOR_STATUS            = 'container_status'
 CONTAINER_MONITOR_MEMORY_USAGE      = 'container_memory_usage'
 CONTAINER_MONITOR_MEMORY_PERCENTAGE = 'container_memory_percentage_usage'
 CONTAINER_MONITOR_CPU_PERCENTAGE    = 'container_cpu_percentage_usage'
-CONTAINER_MONITOR_NETWORK_UP        = 'container_network_up'
-CONTAINER_MONITOR_NETWORK_DOWN      = 'container_network_down'
 
 _UTILISATION_MON_COND = {
     UTILISATION_MONITOR_VERSION         : ['Version'                , None      , 'mdi:memory'],
@@ -48,8 +53,6 @@ _CONTAINER_MON_COND = {
     CONTAINER_MONITOR_MEMORY_USAGE      : ['Memory use'             , 'bytes'   , 'mdi:memory'                          ],
     CONTAINER_MONITOR_MEMORY_PERCENTAGE : ['Memory use (percent)'   , '%'       , 'mdi:memory'                          ],
     CONTAINER_MONITOR_CPU_PERCENTAGE    : ['CPU use'                , '%'       , 'mdi:chip'                            ],
-    CONTAINER_MONITOR_NETWORK_UP        : ['Network Up'             , 'Bytes'   , 'mdi:upload'                          ],
-    CONTAINER_MONITOR_NETWORK_DOWN      : ['Network Down'           , 'Bytes'   , 'mdi:download'                        ],
 }
 
 _MONITORED_CONDITIONS = list(_UTILISATION_MON_COND.keys()) + \
@@ -57,8 +60,7 @@ _MONITORED_CONDITIONS = list(_UTILISATION_MON_COND.keys()) + \
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Optional(CONF_HOST, default=DEFAULT_HOST): cv.string,
-    vol.Optional(CONF_MONITORED_CONDITIONS):
-        vol.All(cv.ensure_list, [vol.In(_MONITORED_CONDITIONS)]),
+    vol.Optional(CONF_MONITORED_CONDITIONS): vol.All(cv.ensure_list, [vol.In(_MONITORED_CONDITIONS)]),
     vol.Optional(CONF_CONTAINERS): cv.ensure_list,
 })
 
@@ -71,7 +73,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
     try:
         api = docker.DockerClient(base_url=host)
-    except:
+    except:  # noqa: E722 pylint: disable=bare-except
         _LOGGER.info("Error setting up Docker sensor")
         return
 
@@ -131,7 +133,7 @@ class DockerContainerApi(threading.Thread):
     def run(self):
         for i in self._stats_stream:
             self._setStats(i)
-            time.sleep(1)
+            time.sleep(0.5)
             if self.stopped():
                 break
 
@@ -153,24 +155,23 @@ class DockerContainerApi(threading.Thread):
         return self._stopper.isSet()
 
     def _setStats(self, raw_stats):
+        from dateutil import parser
+
         stats                   = {}
         stats['id']             = self._container.id
         stats['image']          = self._container.image.tags
         stats['status']         = self._container.attrs['State']['Status']
 
+        stats['created']        = dt_util.as_local(parser.parse(self._container.attrs['Created'])).isoformat()
+        stats['started']        = dt_util.as_local(parser.parse(self._container.attrs['State']['StartedAt'])).isoformat()
+
         if stats['status'] in ('running', 'paused'):
             stats['cpu']            = self._get_docker_cpu(raw_stats)
             stats['memory']         = self._get_docker_memory(raw_stats)
-            stats['io']             = self._get_docker_io(raw_stats)
-            stats['network']        = self._get_docker_network(raw_stats)
 
             stats['cpu_percent']    = stats['cpu'].get('total', None)
             stats['memory_usage']   = stats['memory'].get('usage', None)
             stats['memory_percent'] = stats['memory'].get('usage_percent', None)
-            stats['io_r']           = stats['io'].get('ior', None)
-            stats['io_w']           = stats['io'].get('iow', None)
-            stats['network_up']     = stats['network'].get('tx', None)
-            stats['network_down']   = stats['network'].get('rx', None)
         else:
             stats['cpu']            = {}
             stats['memory']         = {}
@@ -180,10 +181,6 @@ class DockerContainerApi(threading.Thread):
             stats['cpu_percent']    = None
             stats['memory_usage']   = None
             stats['memory_percent'] = None
-            stats['io_r']           = None
-            stats['io_w']           = None
-            stats['network_up']     = None
-            stats['network_down']   = None
 
         self._stats = stats
 
@@ -238,73 +235,6 @@ class DockerContainerApi(threading.Thread):
 
         return ret
 
-    def _get_docker_network(self, raw_stats):
-        network_new = {}
-
-        try:
-            netcounters = raw_stats["networks"]
-        except KeyError as e:
-            # raw_stats do not have NETWORK information
-            _LOGGER.info("Cannot grab NET usage for container {} ({})".format(self._container.id, e))
-            _LOGGER.debug(raw_stats)
-        else:
-            if not hasattr(self, 'inetcounters_old'):
-                # First call, we init the network_old var
-                try:
-                    self.netcounters_old = netcounters
-                except (IOError, UnboundLocalError):
-                    pass
-
-            try:
-                network_new['rx'] = netcounters['eth0']['rx_bytes'] - self.netcounters_old['eth0']['rx_bytes']
-                network_new['tx'] = netcounters['eth0']['tx_bytes'] - self.netcounters_old['eth0']['tx_bytes']
-                network_new['cumulative_rx'] = netcounters['eth0']['rx_bytes']
-                network_new['cumulative_tx'] = netcounters['eth0']['tx_bytes']
-            except KeyError as e:
-                _LOGGER.info("Cannot grab network interface usage for container {} ({})".format(self._container.id, e))
-                _LOGGER.debug(raw_stats)
-
-            self.netcounters_old = netcounters
-
-        return network_new
-
-    def _get_docker_io(self, raw_stats):
-        io_new = {}
-
-        try:
-            iocounters = raw_stats['blkio_stats']
-        except KeyError as e:
-            # raw_stats do not have io information
-            _LOGGER.info("Cannot grab block IO usage for container {} ({})".format(self._container.id, e))
-            _LOGGER.debug(raw_stats)
-            return io_new
-        else:
-            if not hasattr(self, 'iocounters_old'):
-                # First call, we init the io_old var
-                try:
-                    self.iocounters_old = iocounters
-                except (IOError, UnboundLocalError):
-                    pass
-
-            try:
-                # Read IOR and IOW value in the structure list of dict
-                ior = [i for i in iocounters['io_service_bytes_recursive'] if i['op'] == 'Read'][0]['value']
-                iow = [i for i in iocounters['io_service_bytes_recursive'] if i['op'] == 'Write'][0]['value']
-                ior_old = [i for i in self.iocounters_old['io_service_bytes_recursive'] if i['op'] == 'Read'][0]['value']
-                iow_old = [i for i in self.iocounters_old['io_service_bytes_recursive'] if i['op'] == 'Write'][0]['value']
-            except (TypeError, IndexError, KeyError) as e:
-                _LOGGER.info("Cannot grab block IO usage for container {} ({})".format(self._container.id, e))
-            else:
-                io_new['ior'] = ior - ior_old
-                io_new['iow'] = iow - iow_old
-                io_new['cumulative_ior'] = ior
-                io_new['cumulative_iow'] = iow
-
-            self.iocounters_old = iocounters
-
-        return io_new
-
-
 class DockerUtilSensor(Entity):
     """Representation of a Docker Sensor."""
 
@@ -327,7 +257,7 @@ class DockerUtilSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor, if any."""
-        return "docker_{}".format(self._var_name.lower())
+        return "Docker {}".format(self._var_name)
 
     @property
     def icon(self):
@@ -349,9 +279,9 @@ class DockerUtilSensor(Entity):
         if self._var_id == UTILISATION_MONITOR_VERSION:
             version = dockerVersion(self._api)
             self._state                         = version.get('version', None)
-            self._attributes['api_version']     = version.get('api_version', None)
-            self._attributes['os']              = version.get('os', None)
-            self._attributes['arch']            = version.get('arch', None)
+            self._attributes[ATTR_VERSION_API]  = version.get('api_version', None)
+            self._attributes[ATTR_VERSION_OS]   = version.get('os', None)
+            self._attributes[ATTR_VERSION_ARCH] = version.get('arch', None)
 
     @property
     def device_state_attributes(self):
@@ -383,7 +313,7 @@ class DockerContainerSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor, if any."""
-        return "docker_{}_{}".format(self._name, self._var_name)
+        return "Docker {} {}".format(self._name, self._var_name)
 
     @property
     def icon(self):
@@ -405,19 +335,24 @@ class DockerContainerSensor(Entity):
         stats = self._thread.stats()
         if self._var_id == CONTAINER_MONITOR_STATUS:
             self._state                         = stats.get('status', None)
-        elif self._var_id == CONTAINER_MONITOR_MEMORY_USAGE:
-            self._state                         = stats.get('memory_usage', None)
         elif self._var_id == CONTAINER_MONITOR_CPU_PERCENTAGE:
             self._state                         = stats.get('cpu_percent', None)
-            if 'cpu' in stats:
-                self._attributes[ATTR_ONLINE_CPUS]  = stats['cpu'].get('online_cpus', None)
+        elif self._var_id == CONTAINER_MONITOR_MEMORY_USAGE:
+            self._state                         = stats.get('memory_usage', None)
         elif self._var_id == CONTAINER_MONITOR_MEMORY_PERCENTAGE:
             self._state                         = stats.get('memory_percent', None)
-        # Network
-        elif self._var_id == CONTAINER_MONITOR_NETWORK_UP:
-            self._state                         = round(stats.get('network_up', None) / 1024.0, PRECISION)
-        elif self._var_id == CONTAINER_MONITOR_NETWORK_DOWN:
-            self._state                         = round(stats.get('network_down', None) / 1024.0, PRECISION)
+
+        if self._var_id in (CONTAINER_MONITOR_CPU_PERCENTAGE):
+            cpus = stats.get('cpu', {}).get('online_cpus')
+            if cpus is not None:
+                self._attributes[ATTR_ONLINE_CPUS]      = cpus
+        elif self._var_id in (CONTAINER_MONITOR_MEMORY_USAGE, CONTAINER_MONITOR_MEMORY_PERCENTAGE):
+            limit = stats.get('memory', {}).get('limit')
+            if limit is not None:
+                self._attributes[ATTR_MEMORY_LIMIT]     = str(round(limit / (1024 ** 2))) + ' MB'
+
+        self._attributes[ATTR_CREATED]      = stats.get('created', None)
+        self._attributes[ATTR_STARTED_AT]   = stats.get('started', None)
 
     @property
     def device_state_attributes(self):
