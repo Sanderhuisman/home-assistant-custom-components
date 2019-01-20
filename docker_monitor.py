@@ -1,9 +1,9 @@
-"""
-Connect to a MySensors gateway via pymysensors API.
+'''
+Docker Monitor component
 
 For more details about this component, please refer to the documentation at
-https://home-assistant.io/components/mysensors/
-"""
+https://github.com/Sanderhuisman/home-assistant-custom-components
+'''
 import logging
 import threading
 import time
@@ -21,7 +21,7 @@ from homeassistant.const import (
 from homeassistant.core import callback
 from homeassistant.helpers.discovery import load_platform
 
-REQUIREMENTS = ['pymysensors==0.18.0']
+REQUIREMENTS = ['docker==3.7.0', 'python-dateutil==2.7.5']
 
 _LOGGER = logging.getLogger(__name__)
 

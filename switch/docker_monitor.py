@@ -1,3 +1,9 @@
+'''
+Docker Monitor component
+
+For more details about this component, please refer to the documentation at
+https://github.com/Sanderhuisman/home-assistant-custom-components
+'''
 import logging
 
 from homeassistant.components.switch import (
