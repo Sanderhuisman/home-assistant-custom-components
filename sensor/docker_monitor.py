@@ -17,7 +17,6 @@ from homeassistant.const import (
 from homeassistant.helpers.entity import Entity
 import homeassistant.util.dt as dt_util
 
-
 REQUIREMENTS = ['docker==3.7.0', 'python-dateutil==2.7.5']
 
 _LOGGER = logging.getLogger(__name__)
@@ -65,7 +64,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 })
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
-    """Set up the Synology NAS Sensor."""
+    """Set up the Docker Monitor Sensor."""
     import docker
 
     host                    = config.get(CONF_HOST)
@@ -156,6 +155,8 @@ class DockerContainerApi(threading.Thread):
 
     def _setStats(self, raw_stats):
         from dateutil import parser
+
+        self._container.reload()
 
         stats                   = {}
         stats['id']             = self._container.id
@@ -334,7 +335,7 @@ class DockerContainerSensor(Entity):
         elif self._var_id == CONTAINER_MONITOR_CPU_PERCENTAGE:
             self._state                         = stats.get('cpu', {}).get('total')
         elif self._var_id == CONTAINER_MONITOR_MEMORY_USAGE:
-            use  = stats.get('memory', {}).get('usage')
+            use = stats.get('memory', {}).get('usage')
             if use is not None:
                 self._state = round(use / (1024 ** 2)) # Bytes to MB
             else:
