@@ -42,6 +42,8 @@ CONTAINER_MONITOR_STATUS            = 'container_status'
 CONTAINER_MONITOR_MEMORY_USAGE      = 'container_memory_usage'
 CONTAINER_MONITOR_MEMORY_PERCENTAGE = 'container_memory_percentage_usage'
 CONTAINER_MONITOR_CPU_PERCENTAGE    = 'container_cpu_percentage_usage'
+CONTAINER_MONITOR_NETWORK_UP        = 'container_network_up'
+CONTAINER_MONITOR_NETWORK_DOWN      = 'container_network_down'
 
 _UTILISATION_MON_COND = {
     UTILISATION_MONITOR_VERSION         : ['Version'                , None      , 'mdi:memory'],
@@ -52,6 +54,8 @@ _CONTAINER_MON_COND = {
     CONTAINER_MONITOR_MEMORY_USAGE      : ['Memory use'             , 'MB'      , 'mdi:memory'                          ],
     CONTAINER_MONITOR_MEMORY_PERCENTAGE : ['Memory use (percent)'   , '%'       , 'mdi:memory'                          ],
     CONTAINER_MONITOR_CPU_PERCENTAGE    : ['CPU use'                , '%'       , 'mdi:chip'                            ],
+    CONTAINER_MONITOR_NETWORK_UP        : ['Network Up'             , 'MB'      , 'mdi:upload'                          ],
+    CONTAINER_MONITOR_NETWORK_DOWN      : ['Network Down'           , 'MB'      , 'mdi:download'                        ],
 }
 
 _MONITORED_CONDITIONS = list(_UTILISATION_MON_COND.keys()) + \
@@ -169,9 +173,11 @@ class DockerContainerApi(threading.Thread):
         if stats['status'] in ('running', 'paused'):
             stats['cpu']            = self._get_docker_cpu(raw_stats)
             stats['memory']         = self._get_docker_memory(raw_stats)
+            stats['network']        = self._get_docker_network(raw_stats)
         else:
             stats['cpu']            = {}
             stats['memory']         = {}
+            stats['network']        = {}
 
         self._stats = stats
 
@@ -223,6 +229,20 @@ class DockerContainerApi(threading.Thread):
             _LOGGER.debug(raw_stats)
         else:
             ret['usage_percent'] = round(float(ret['usage']) / float(ret['limit']) * 100.0, PRECISION)
+
+        return ret
+
+    def _get_docker_network(self, raw_stats):
+        ret = {}
+
+        try:
+            netstats = raw_stats["networks"]['eth0']
+            ret['total_rx'] = netstats['rx_bytes']
+            ret['total_tx'] = netstats['tx_bytes']
+        except KeyError as e:
+            # raw_stats do not have NETWORK information
+            _LOGGER.info("Cannot grab NET usage for container {} ({})".format(self._container.id, e))
+            _LOGGER.debug(raw_stats)
 
         return ret
 
@@ -342,6 +362,19 @@ class DockerContainerSensor(Entity):
                 self._state = None
         elif self._var_id == CONTAINER_MONITOR_MEMORY_PERCENTAGE:
             self._state                         = stats.get('memory', {}).get('usage_percent')
+        # Network
+        elif self._var_id == CONTAINER_MONITOR_NETWORK_UP:
+            up = stats.get('network', {}).get('total_tx')
+            if up is not None:
+                self._state = round(up / (1024 ** 2))
+            else:
+                self._state = None
+        elif self._var_id == CONTAINER_MONITOR_NETWORK_DOWN:
+            down = stats.get('network', {}).get('total_rx')
+            if down is not None:
+                self._state = round(down / (1024 ** 2))
+            else:
+                self._state = None
 
         if self._var_id in (CONTAINER_MONITOR_CPU_PERCENTAGE):
             cpus = stats.get('cpu', {}).get('online_cpus')
