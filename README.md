@@ -8,16 +8,15 @@
 
 ### Docker Monitor <a name="docker_monitor"></a>
 
-The Docker monitor allows to minitor statistics of containers. De sensor can connected to a Deamon through the host parameter. When home assistant is used within a Docker container, the Deamon can be mounted as followows `-v /var/run/docker.sock:/var/run/docker.sock`.
+The Docker monitor allows to monitor statistics and turn on/off containers. The monitor can connected to a Deamon through the url parameter. When home assistant is used within a Docker container, the Deamon can be mounted as followows `-v /var/run/docker.sock:/var/run/docker.sock`.
 
 #### Configuration
 
-To use the `docker_monitor` sensor in your installation, add the following to your `configuration.yaml` file:
+To use the `docker_monitor` in your installation, add the following to your `configuration.yaml` file:
 
 ```yaml
 # Example configuration.yaml entry
-sensor:
-  - platform: docker_monitor
+docker_monitor:
     containers:
       - homeassistant_home-assistant_1
       - homeassistant_mariadb_1
@@ -34,7 +33,7 @@ sensor:
 
 | Parameter            | Type                     | Description                                                           |
 | -------------------- | ------------------------ | --------------------------------------------------------------------- |
-| host                 | string       (Optional)  | Host URL of Docker daemon. Defaults to `unix://var/run/docker.sock`.  |
+| url                  | string       (Optional)  | Host URL of Docker daemon. Defaults to `unix://var/run/docker.sock`.  |
 | scan_interval        | time_period  (Optional)  | Update interval. Defaults to 10 seconds.                              |
 | containers           | list         (Optional)  | Array of containers to monitor. Defaults to all containers.           |
 | monitored_conditions | list         (Optional)  | Array of conditions to be monitored. Defaults to all conditions       |

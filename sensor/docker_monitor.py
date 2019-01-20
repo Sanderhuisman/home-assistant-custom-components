@@ -44,8 +44,6 @@ ATTR_STARTED_AT = 'Started_at'
 def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up the Docker Monitor Sensor."""
 
-    _LOGGER.info("Config {}".format(config))
-
     api = hass.data[DOCKER_HANDLE][DATA_DOCKER_API]
     monitored_conditions = hass.data[DOCKER_HANDLE][DATA_SENSOR_CONDITIONS]
 

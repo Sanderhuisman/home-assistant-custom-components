@@ -13,7 +13,7 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.const import (
     ATTR_ATTRIBUTION,
-    CONF_HOST,
+    CONF_URL,
     CONF_MONITORED_CONDITIONS,
     CONF_SCAN_INTERVAL,
     EVENT_HOMEASSISTANT_STOP
@@ -35,7 +35,7 @@ DATA_SENSOR_CONDITIONS = 'sensors'
 
 PRECISION = 2
 
-DEFAULT_HOST = 'unix://var/run/docker.sock'
+DEFAULT_URL = 'unix://var/run/docker.sock'
 
 DEFAULT_SCAN_INTERVAL = timedelta(seconds=10)
 
@@ -94,7 +94,7 @@ _MONITORED_CONDITIONS = list(_UTILISATION_MON_COND.keys()) + \
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
-        vol.Optional(CONF_HOST, default=DEFAULT_HOST):
+        vol.Optional(CONF_URL, default=DEFAULT_URL):
             cv.string,
         vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL):
             cv.time_period,
@@ -109,7 +109,7 @@ CONFIG_SCHEMA = vol.Schema({
 def setup(hass, config):
     _LOGGER.info("Settings: {}".format(config[DOMAIN]))
 
-    host = config[DOMAIN].get(CONF_HOST)
+    host = config[DOMAIN].get(CONF_URL)
 
     try:
         api = DockerAPI(host)
@@ -126,9 +126,6 @@ def setup(hass, config):
         hass.data[DOCKER_HANDLE][DATA_SENSOR_CONDITIONS] = config[DOMAIN].get(
             CONF_MONITORED_CONDITIONS)
 
-        _LOGGER.info("Conditions: {}".format(
-            config[DOMAIN].get(CONF_MONITORED_CONDITIONS)))
-
         for component in DOCKER_TYPE:
             load_platform(hass, component, DOMAIN, {}, config)
 
@@ -139,7 +136,7 @@ def setup(hass, config):
 
         hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, monitor_stop)
 
-    return True
+        return True
 
 
 """ 
@@ -249,12 +246,10 @@ class DockerContainerAPI:
 
     def start(self):
         _LOGGER.info("Start container {}".format(self._name))
-        # TODO extra handling?
         self._container.start()
 
     def stop(self, timeout=10):
         _LOGGER.info("Stop container {}".format(self._name))
-        # TODO extra handling?
         self._container.stop(timeout=timeout)
 
     def _notify(self, message):
