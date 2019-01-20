@@ -17,6 +17,7 @@ from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import (
     ATTR_ATTRIBUTION,
     CONF_HOST,
+    CONF_SCAN_INTERVAL,
     CONF_MONITORED_CONDITIONS,
     EVENT_HOMEASSISTANT_STOP
 )
@@ -41,6 +42,8 @@ ATTR_CREATED        = 'Created'
 ATTR_STARTED_AT     = 'Started_at'
 
 PRECISION           = 2
+
+DEFAULT_SCAN_INTERVAL = timedelta(seconds=10)
 
 UTILISATION_MONITOR_VERSION         = 'utilization_version'
 
@@ -68,9 +71,14 @@ _MONITORED_CONDITIONS = list(_UTILISATION_MON_COND.keys()) + \
     list(_CONTAINER_MON_COND.keys())
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Optional(CONF_HOST, default=DEFAULT_HOST): cv.string,
-    vol.Optional(CONF_MONITORED_CONDITIONS): vol.All(cv.ensure_list, [vol.In(_MONITORED_CONDITIONS)]),
-    vol.Optional(CONF_CONTAINERS): cv.ensure_list,
+    vol.Optional(CONF_HOST, default=DEFAULT_HOST): 
+        cv.string,
+    vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL):
+        cv.time_period,
+    vol.Optional(CONF_MONITORED_CONDITIONS): 
+        vol.All(cv.ensure_list, [vol.In(_MONITORED_CONDITIONS)]),
+    vol.Optional(CONF_CONTAINERS): 
+        cv.ensure_list,
 })
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
@@ -78,6 +86,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
     host                    = config.get(CONF_HOST)
     monitored_conditions    = config.get(CONF_MONITORED_CONDITIONS)
+    interval                = config.get(CONF_SCAN_INTERVAL).total_seconds()
 
     try:
         api = DockerAPI(host)
@@ -88,13 +97,13 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     version = api.get_info()
     _LOGGER.info("Docker version: {}".format(version.get('version', None)))
 
-    sensors = [DockerUtilSensor(api, variable) for variable in monitored_conditions if variable in _UTILISATION_MON_COND]
+    sensors = [DockerUtilSensor(api, variable, interval) for variable in monitored_conditions if variable in _UTILISATION_MON_COND]
 
     containers = api.get_containers()
     names = [x.get_name() for x in containers] 
 
     for name in config.get(CONF_CONTAINERS, names):
-        sensors += [DockerContainerSensor(api, name, variable) for variable in monitored_conditions if variable in _CONTAINER_MON_COND]
+        sensors += [DockerContainerSensor(api, name, variable, interval) for variable in monitored_conditions if variable in _CONTAINER_MON_COND]
 
     if sensors:
         def monitor_stop(_service_or_event):
@@ -108,9 +117,10 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 class DockerUtilSensor(Entity):
     """Representation of a Docker Sensor."""
 
-    def __init__(self, api, variable):
+    def __init__(self, api, variable, interval):
         """Initialize the sensor."""
         self._api           = api
+        self._interval      = interval # TODO implement
 
         self._var_id        = variable
         self._var_name      = _UTILISATION_MON_COND[variable][0]
@@ -161,10 +171,11 @@ class DockerUtilSensor(Entity):
 class DockerContainerSensor(Entity):
     """Representation of a Docker Sensor."""
 
-    def __init__(self, api, name, variable):
+    def __init__(self, api, name, variable, interval):
         """Initialize the sensor."""
         self._api           = api
         self._name          = name
+        self._interval      = interval
 
         self._var_id        = variable
         self._var_name      = _CONTAINER_MON_COND[variable][0]
@@ -220,7 +231,10 @@ class DockerContainerSensor(Entity):
 
             self._attributes[ATTR_CREATED]      = dt_util.as_local(stats['info']['created']).isoformat()
             self._attributes[ATTR_STARTED_AT]   = dt_util.as_local(stats['info']['started']).isoformat()
-        self._container.stats(update_callback)
+
+            self.schedule_update_ha_state()
+
+        self._container.stats(update_callback, self._interval)
 
     @property
     def name(self):
@@ -237,6 +251,10 @@ class DockerContainerSensor(Entity):
                 return 'mdi:checkbox-blank-circle-outline'
         else:        
             return self._var_icon
+
+    @property
+    def should_poll(self):
+        return False
 
     @property
     def state(self):

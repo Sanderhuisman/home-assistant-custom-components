@@ -32,11 +32,12 @@ sensor:
 
 ##### Configuration variables
 
-| Parameter            | Type              | Description                                                          |
-| -------------------- | ----------------- | -------------------------------------------------------------------- |
-| host                 | string (Optional) | Host URL of Docker daemon. Defaults to `unix://var/run/docker.sock`. |
-| containers           | list   (Optional) | Array of containers to monitor. Defaults to all containers.          |
-| monitored_conditions | list   (Optional) | Array of conditions to be monitored. Defaults to all conditions      |
+| Parameter            | Type                     | Description                                                           |
+| -------------------- | ------------------------ | --------------------------------------------------------------------- |
+| host                 | string       (Optional)  | Host URL of Docker daemon. Defaults to `unix://var/run/docker.sock`.  |
+| scan_interval        | time_period  (Optional)  | Update interval. Defaults to 10 seconds.                              |
+| containers           | list         (Optional)  | Array of containers to monitor. Defaults to all containers.           |
+| monitored_conditions | list         (Optional)  | Array of conditions to be monitored. Defaults to all conditions       |
 
 | Condition                         | Description           | Unit  |
 | --------------------------------- | --------------------- | ----- |
