@@ -65,12 +65,13 @@ class ContainerSwitch(SwitchDevice):
         self._container.stats(update_callback)
 
     @property
-    def should_poll(self):
-        return True
+    def name(self):
+        """Return the name of the sensor."""
+        return "Docker {}".format(self._name)
 
     @property
-    def name(self):
-        return self._name
+    def should_poll(self):
+        return True
 
     @property
     def icon(self):
