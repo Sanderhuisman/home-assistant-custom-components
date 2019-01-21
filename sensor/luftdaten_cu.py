@@ -69,6 +69,10 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
     try:
         api = LuftdatenApi(sensor_id)
+    except Exception as e:
+        _LOGGER.error("Could not setup Lufdaten sensor ({})".format(e))
+        return False
+    else:
         if api.data is None:
             _LOGGER.error("Sensor is not available: {}".format(sensor_id))
             return
@@ -78,10 +82,8 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
                    if variable in SENSOR_TYPES and variable in api.data]
 
         add_entities(sensors, True)
-    except Exception as e:
-        print(e)
-    # except:  # noqa: E722 pylint: disable=bare-except
-    #     _LOGGER.error("Error setting up Luftdaten sensor")
+
+        return True
 
 
 class LuftdatenApi:
@@ -130,9 +132,9 @@ class LuftdatenSensor(Entity):
         """Initialize the Luftdaten sensor."""
         self._api = api
         self.sensor = sensor
-        self.var_name = SENSOR_TYPES[sensor][0]
-        self.var_units = SENSOR_TYPES[sensor][1]
-        self.var_icon = SENSOR_TYPES[sensor][2]
+        self._var_name = SENSOR_TYPES[sensor][0]
+        self._var_units = SENSOR_TYPES[sensor][1]
+        self._var_icon = SENSOR_TYPES[sensor][2]
 
         self._state = None
         self._attributes = {}
@@ -141,12 +143,12 @@ class LuftdatenSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor, if any."""
-        return "luftdaten_{}_{}".format(self._api.sensor_id, self.sensor)
+        return "Luftdaten ({}) {}".format(self._api.sensor_id, self._var_name)
 
     @property
     def icon(self):
         """Icon to use in the frontend, if any."""
-        return self.var_icon
+        return self._var_icon
 
     @property
     def state(self):
@@ -156,7 +158,7 @@ class LuftdatenSensor(Entity):
     @property
     def unit_of_measurement(self):
         """Return the unit of measurement of this entity, if any."""
-        return self.var_units
+        return self._var_units
 
     def update(self):
         """Get the latest data for the states."""

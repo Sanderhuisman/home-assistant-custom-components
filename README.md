@@ -19,16 +19,16 @@ To use the `docker_monitor` in your installation, add the following to your `con
 ```yaml
 # Example configuration.yaml entry
 docker_monitor:
-    containers:
-      - homeassistant_home-assistant_1
-      - homeassistant_mariadb_1
-      - homeassistant_mosquitto_1
-    monitored_conditions:
-      - utilization_version
-      - container_status
-      - container_memory_usage
-      - container_memory_percentage_usage
-      - container_cpu_percentage_usage
+  containers:
+    - homeassistant_home-assistant_1
+    - homeassistant_mariadb_1
+    - homeassistant_mosquitto_1
+  monitored_conditions:
+    - utilization_version
+    - container_status
+    - container_memory_usage
+    - container_memory_percentage_usage
+    - container_cpu_percentage_usage
 ```
 
 ##### Configuration variables

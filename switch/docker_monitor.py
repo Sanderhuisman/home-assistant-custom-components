@@ -15,11 +15,11 @@ from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.core import ServiceCall
 
 from custom_components.docker_monitor import (
-    DOCKER_HANDLE,
-    DATA_DOCKER_API,
-    DATA_CONFIG,
     CONF_ATTRIBUTION,
     CONF_CONTAINERS,
+    DATA_CONFIG,
+    DATA_DOCKER_API,
+    DOCKER_HANDLE
 )
 
 DEPENDENCIES = ['docker_monitor']

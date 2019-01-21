@@ -13,9 +13,9 @@ import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.const import (
     ATTR_ATTRIBUTION,
-    CONF_URL,
     CONF_MONITORED_CONDITIONS,
     CONF_SCAN_INTERVAL,
+    CONF_URL,
     EVENT_HOMEASSISTANT_STOP
 )
 from homeassistant.core import callback
@@ -68,29 +68,9 @@ _CONTAINER_MON_COND = {
     CONTAINER_MONITOR_NETWORK_DOWN: ['Network Down', 'MB', 'mdi:download'],
 }
 
-_MONITORED_CONDITIONS = list(_UTILISATION_MON_COND.keys()) + \
+_MONITORED_CONDITIONS = \
+    list(_UTILISATION_MON_COND.keys()) + \
     list(_CONTAINER_MON_COND.keys())
-
-
-# NODE_SCHEMA = vol.Schema({
-#     cv.positive_int: {
-#         vol.Required(CONF_NODE_NAME): cv.string
-#     }
-# })
-
-# GATEWAY_SCHEMA = {
-#     vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL):
-#         cv.time_period,
-# vol.Required(CONF_DEVICE): cv.string,
-# vol.Optional(CONF_PERSISTENCE_FILE):
-#     vol.All(cv.string, is_persistence_file),
-# vol.Optional(CONF_BAUD_RATE, default=DEFAULT_BAUD_RATE):
-#     cv.positive_int,
-# vol.Optional(CONF_TCP_PORT, default=DEFAULT_TCP_PORT): cv.port,
-# vol.Optional(CONF_TOPIC_IN_PREFIX): valid_subscribe_topic,
-# vol.Optional(CONF_TOPIC_OUT_PREFIX): valid_publish_topic,
-# vol.Optional(CONF_NODES, default={}): NODE_SCHEMA,
-# }
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
