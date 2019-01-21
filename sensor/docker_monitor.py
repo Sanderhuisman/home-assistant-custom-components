@@ -8,14 +8,20 @@ import logging
 from datetime import timedelta
 
 import homeassistant.util.dt as dt_util
-from homeassistant.const import ATTR_ATTRIBUTION, EVENT_HOMEASSISTANT_STOP
+from homeassistant.const import (
+    ATTR_ATTRIBUTION,
+    CONF_MONITORED_CONDITIONS,
+    CONF_SCAN_INTERVAL,
+    EVENT_HOMEASSISTANT_STOP,
+)
 from homeassistant.helpers.entity import Entity
 
 from custom_components.docker_monitor import (
-    CONF_ATTRIBUTION,
     DOCKER_HANDLE,
     DATA_DOCKER_API,
-    DATA_SENSOR_CONDITIONS,
+    DATA_CONFIG,
+    CONF_ATTRIBUTION,
+    CONF_CONTAINERS,
     _UTILISATION_MON_COND,
     _CONTAINER_MON_COND,
 
@@ -45,23 +51,23 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up the Docker Monitor Sensor."""
 
     api = hass.data[DOCKER_HANDLE][DATA_DOCKER_API]
-    monitored_conditions = hass.data[DOCKER_HANDLE][DATA_SENSOR_CONDITIONS]
-
-    interval = 10  # todo
-    # interval                = config.get(CONF_SCAN_INTERVAL).total_seconds()
-
-    version = api.get_info()
-    _LOGGER.info("Docker version: {}".format(version.get('version', None)))
+    config = hass.data[DOCKER_HANDLE][DATA_CONFIG]
+    interval = config[CONF_SCAN_INTERVAL].total_seconds()
 
     sensors = [DockerUtilSensor(api, variable, interval)
-               for variable in monitored_conditions if variable in _UTILISATION_MON_COND]
+               for variable in config[CONF_MONITORED_CONDITIONS] if variable in _UTILISATION_MON_COND]
 
-    for name in [x.get_name() for x in api.get_containers()]:
-        sensors += [DockerContainerSensor(api, name, variable, interval)
-                    for variable in monitored_conditions if variable in _CONTAINER_MON_COND]
+    containers = [container.get_name() for container in api.get_containers()]
+    for name in config[CONF_CONTAINERS]:
+        if name in containers:
+            sensors += [DockerContainerSensor(api, name, variable, interval)
+                        for variable in config[CONF_MONITORED_CONDITIONS] if variable in _CONTAINER_MON_COND]
 
     if sensors:
         add_entities(sensors, True)
+    else:
+        _LOGGER.info("No containers setup")
+        return False
 
 
 class DockerUtilSensor(Entity):

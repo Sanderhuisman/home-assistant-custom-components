@@ -31,7 +31,7 @@ CONF_ATTRIBUTION = 'Data provided by Docker'
 
 DOCKER_HANDLE = 'docker_handle'
 DATA_DOCKER_API = 'api'
-DATA_SENSOR_CONDITIONS = 'sensors'
+DATA_CONFIG = 'config'
 
 PRECISION = 2
 
@@ -118,13 +118,16 @@ def setup(hass, config):
         return False
     else:
         version = api.get_info()
-        _LOGGER.error("Docker version: {}".format(
+        _LOGGER.debug("Docker version: {}".format(
             version.get('version', None)))
 
         hass.data[DOCKER_HANDLE] = {}
         hass.data[DOCKER_HANDLE][DATA_DOCKER_API] = api
-        hass.data[DOCKER_HANDLE][DATA_SENSOR_CONDITIONS] = config[DOMAIN].get(
-            CONF_MONITORED_CONDITIONS)
+        hass.data[DOCKER_HANDLE][DATA_CONFIG] = {
+            CONF_CONTAINERS: config[DOMAIN].get(CONF_CONTAINERS, [container.get_name() for container in api.get_containers()]),
+            CONF_MONITORED_CONDITIONS: config[DOMAIN].get(CONF_MONITORED_CONDITIONS),
+            CONF_SCAN_INTERVAL: config[DOMAIN].get(CONF_SCAN_INTERVAL),
+        }
 
         for component in DOCKER_TYPE:
             load_platform(hass, component, DOMAIN, {}, config)
@@ -279,7 +282,8 @@ class DockerContainerAPI:
                     if 'online_cpus' in raw['cpu_stats']:
                         cpu_stats['online_cpus'] = raw['cpu_stats']['online_cpus']
                     else:
-                        cpu_stats['online_cpus'] = len(raw['cpu_stats']['cpu_usage']['percpu_usage'] or [])
+                        cpu_stats['online_cpus'] = len(
+                            raw['cpu_stats']['cpu_usage']['percpu_usage'] or [])
                 except KeyError as e:
                     # raw do not have CPU information
                     _LOGGER.info("Cannot grab CPU usage for container {} ({})".format(

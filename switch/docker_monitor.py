@@ -15,9 +15,11 @@ from homeassistant.const import ATTR_ATTRIBUTION
 from homeassistant.core import ServiceCall
 
 from custom_components.docker_monitor import (
-    CONF_ATTRIBUTION,
+    DOCKER_HANDLE,
     DATA_DOCKER_API,
-    DOCKER_HANDLE
+    DATA_CONFIG,
+    CONF_ATTRIBUTION,
+    CONF_CONTAINERS,
 )
 
 DEPENDENCIES = ['docker_monitor']
@@ -29,11 +31,11 @@ def setup_platform(hass, config, add_devices_callback, discovery_info=None):
     """Set up the Docker Monitor Switch."""
 
     api = hass.data[DOCKER_HANDLE][DATA_DOCKER_API]
+    config = hass.data[DOCKER_HANDLE][DATA_CONFIG]
 
-    switches = []
-    for name in [x.get_name() for x in api.get_containers()]:
-        switches.append(ContainerSwitch(api, name))
-
+    containers = [container.get_name() for container in api.get_containers()]
+    switches = [ContainerSwitch(api, name)
+                for name in config[CONF_CONTAINERS] if name in containers]
     if switches:
         add_devices_callback(switches, True)
     else:
