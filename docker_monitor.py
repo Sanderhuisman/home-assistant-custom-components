@@ -275,7 +275,11 @@ class DockerContainerAPI:
                     cpu_new['total'] = raw['cpu_stats']['cpu_usage']['total_usage']
                     cpu_new['system'] = raw['cpu_stats']['system_cpu_usage']
 
-                    cpu_stats['online_cpus'] = raw['cpu_stats']['online_cpus']
+                    # Compatibility wih older Docker API
+                    if 'online_cpus' in raw['cpu_stats']:
+                        cpu_stats['online_cpus'] = raw['cpu_stats']['online_cpus']
+                    else:
+                        cpu_stats['online_cpus'] = len(raw['cpu_stats']['cpu_usage']['percpu_usage'] or [])
                 except KeyError as e:
                     # raw do not have CPU information
                     _LOGGER.info("Cannot grab CPU usage for container {} ({})".format(
