@@ -49,6 +49,7 @@ CONF_CONTAINERS = 'containers'
 UTILISATION_MONITOR_VERSION = 'utilization_version'
 
 CONTAINER_MONITOR_STATUS = 'container_status'
+CONTAINER_MONITOR_IMAGE = 'container_image'
 CONTAINER_MONITOR_MEMORY_USAGE = 'container_memory_usage'
 CONTAINER_MONITOR_MEMORY_PERCENTAGE = 'container_memory_percentage_usage'
 CONTAINER_MONITOR_CPU_PERCENTAGE = 'container_cpu_percentage_usage'
@@ -61,6 +62,7 @@ _UTILISATION_MON_COND = {
 
 _CONTAINER_MON_COND = {
     CONTAINER_MONITOR_STATUS: ['Status', None, 'mdi:checkbox-marked-circle-outline'],
+    CONTAINER_MONITOR_IMAGE: ['Image', None, 'mdi:information-outline'],
     CONTAINER_MONITOR_MEMORY_USAGE: ['Memory use', 'MB', 'mdi:memory'],
     CONTAINER_MONITOR_MEMORY_PERCENTAGE: ['Memory use (percent)', '%', 'mdi:memory'],
     CONTAINER_MONITOR_CPU_PERCENTAGE: ['CPU use', '%', 'mdi:chip'],
@@ -298,6 +300,9 @@ class DockerContainerAPI:
 
                 network_stats = {}
                 try:
+
+                    _LOGGER.debug("Found network stats: {}".format(raw["networks"]))
+
                     netstats = raw["networks"]['eth0']
                     network_stats['total_rx'] = netstats['rx_bytes']
                     network_stats['total_tx'] = netstats['tx_bytes']

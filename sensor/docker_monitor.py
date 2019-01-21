@@ -22,6 +22,7 @@ from custom_components.docker_monitor import (
     CONF_ATTRIBUTION,
     CONF_CONTAINERS,
     CONTAINER_MONITOR_CPU_PERCENTAGE,
+    CONTAINER_MONITOR_IMAGE,
     CONTAINER_MONITOR_MEMORY_PERCENTAGE,
     CONTAINER_MONITOR_MEMORY_USAGE,
     CONTAINER_MONITOR_NETWORK_DOWN,
@@ -29,6 +30,7 @@ from custom_components.docker_monitor import (
     CONTAINER_MONITOR_STATUS,
     DATA_CONFIG, DATA_DOCKER_API,
     DOCKER_HANDLE,
+    PRECISION,
     UTILISATION_MONITOR_VERSION
 )
 
@@ -153,8 +155,11 @@ class DockerContainerSensor(Entity):
             _LOGGER.debug("Received callback with message: {}".format(stats))
 
             state = None
+            # Info
             if self._var_id == CONTAINER_MONITOR_STATUS:
                 state = stats['info']['status']
+            elif self._var_id == CONTAINER_MONITOR_IMAGE:
+                state = stats['info']['image'][0] # get first from array
             # cpu
             elif self._var_id == CONTAINER_MONITOR_CPU_PERCENTAGE:
                 state = stats.get('cpu', {}).get('total')
@@ -163,18 +168,18 @@ class DockerContainerSensor(Entity):
                 use = stats.get('memory', {}).get('usage')
                 state = None
                 if use is not None:
-                    state = round(use / (1024 ** 2))  # Bytes to MB
+                    state = round(use / (1024 ** 2), PRECISION)  # Bytes to MB
             elif self._var_id == CONTAINER_MONITOR_MEMORY_PERCENTAGE:
                 state = stats.get('memory', {}).get('usage_percent')
             # network
             elif self._var_id == CONTAINER_MONITOR_NETWORK_UP:
                 up = stats.get('network', {}).get('total_tx')
                 if up is not None:
-                    state = round(up / (1024 ** 2))
+                    state = round(up / (1024 ** 2), PRECISION)
             elif self._var_id == CONTAINER_MONITOR_NETWORK_DOWN:
                 down = stats.get('network', {}).get('total_rx')
                 if down is not None:
-                    state = round(down / (1024 ** 2))
+                    state = round(down / (1024 ** 2), PRECISION)
             self._state = state
 
             # Attributes
@@ -186,7 +191,7 @@ class DockerContainerSensor(Entity):
                 limit = stats.get('memory', {}).get('limit')
                 if limit is not None:
                     self._attributes[ATTR_MEMORY_LIMIT] = str(
-                        round(limit / (1024 ** 2))) + ' MB'
+                        round(limit / (1024 ** 2), PRECISION)) + ' MB'
 
             self._attributes[ATTR_CREATED] = dt_util.as_local(
                 stats['info']['created']).isoformat()

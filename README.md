@@ -40,13 +40,16 @@ docker_monitor:
 | containers           | list         (Optional)  | Array of containers to monitor. Defaults to all containers.           |
 | monitored_conditions | list         (Optional)  | Array of conditions to be monitored. Defaults to all conditions       |
 
-| Condition                         | Description           | Unit  |
-| --------------------------------- | --------------------- | ----- |
-| utilization_version               | Docker version        | -     |
-| container_status                  | Container status      | -     |
-| container_memory_usage            | Memory usage          | MB    |
-| container_memory_percentage_usage | Memory usage          | %     |
-| container_cpu_percentage_usage    | CPU usage             | %     |
+| Condition                         | Description               | Unit  |
+| --------------------------------- | ------------------------- | ----- |
+| utilization_version               | Docker version            | -     |
+| container_status                  | Container status          | -     |
+| container_image                   | Container image           | -     |
+| container_cpu_percentage_usage    | CPU usage                 | %     |
+| container_memory_usage            | Memory usage              | MB    |
+| container_memory_percentage_usage | Memory usage              | %     |
+| container_network_up              | Network total upstream    | MB    |
+| container_network_down            | Network total downstream  | MB    |
 
 ### Eetlijst Sensor <a name="eetlijst"></a>
 
