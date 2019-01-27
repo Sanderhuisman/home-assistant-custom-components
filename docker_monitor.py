@@ -49,6 +49,7 @@ CONF_CONTAINERS = 'containers'
 UTILISATION_MONITOR_VERSION = 'utilization_version'
 
 CONTAINER_MONITOR_STATUS = 'container_status'
+CONTAINER_MONITOR_UPTIME = 'container_uptime'
 CONTAINER_MONITOR_IMAGE = 'container_image'
 CONTAINER_MONITOR_MEMORY_USAGE = 'container_memory_usage'
 CONTAINER_MONITOR_MEMORY_PERCENTAGE = 'container_memory_percentage_usage'
@@ -62,6 +63,7 @@ _UTILISATION_MON_COND = {
 
 _CONTAINER_MON_COND = {
     CONTAINER_MONITOR_STATUS: ['Status', None, 'mdi:checkbox-marked-circle-outline'],
+    CONTAINER_MONITOR_UPTIME: ['Up Time', 'timestamp', 'mdi:clock'],
     CONTAINER_MONITOR_IMAGE: ['Image', None, 'mdi:information-outline'],
     CONTAINER_MONITOR_MEMORY_USAGE: ['Memory use', 'MB', 'mdi:memory'],
     CONTAINER_MONITOR_MEMORY_PERCENTAGE: ['Memory use (percent)', '%', 'mdi:memory'],

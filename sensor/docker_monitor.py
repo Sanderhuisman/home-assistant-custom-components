@@ -28,11 +28,14 @@ from custom_components.docker_monitor import (
     CONTAINER_MONITOR_NETWORK_DOWN,
     CONTAINER_MONITOR_NETWORK_UP,
     CONTAINER_MONITOR_STATUS,
-    DATA_CONFIG, DATA_DOCKER_API,
+    CONTAINER_MONITOR_UPTIME,
+    DATA_CONFIG,
+    DATA_DOCKER_API,
     DOCKER_HANDLE,
     PRECISION,
     UTILISATION_MONITOR_VERSION
 )
+
 
 DEPENDENCIES = ['docker_monitor']
 
@@ -158,8 +161,10 @@ class DockerContainerSensor(Entity):
             # Info
             if self._var_id == CONTAINER_MONITOR_STATUS:
                 state = stats['info']['status']
+            if self._var_id == CONTAINER_MONITOR_UPTIME:
+                state = stats['info']['started']
             elif self._var_id == CONTAINER_MONITOR_IMAGE:
-                state = stats['info']['image'][0] # get first from array
+                state = stats['info']['image'][0]  # get first from array
             # cpu
             elif self._var_id == CONTAINER_MONITOR_CPU_PERCENTAGE:
                 state = stats.get('cpu', {}).get('total')
