@@ -58,18 +58,18 @@ CONTAINER_MONITOR_NETWORK_UP = 'container_network_up'
 CONTAINER_MONITOR_NETWORK_DOWN = 'container_network_down'
 
 _UTILISATION_MON_COND = {
-    UTILISATION_MONITOR_VERSION: ['Version', None, 'mdi:information-outline'],
+    UTILISATION_MONITOR_VERSION: ['Version', None, 'mdi:information-outline', None],
 }
 
 _CONTAINER_MON_COND = {
-    CONTAINER_MONITOR_STATUS: ['Status', None, 'mdi:checkbox-marked-circle-outline'],
-    CONTAINER_MONITOR_UPTIME: ['Up Time', 'timestamp', 'mdi:clock'],
-    CONTAINER_MONITOR_IMAGE: ['Image', None, 'mdi:information-outline'],
-    CONTAINER_MONITOR_MEMORY_USAGE: ['Memory use', 'MB', 'mdi:memory'],
-    CONTAINER_MONITOR_MEMORY_PERCENTAGE: ['Memory use (percent)', '%', 'mdi:memory'],
-    CONTAINER_MONITOR_CPU_PERCENTAGE: ['CPU use', '%', 'mdi:chip'],
-    CONTAINER_MONITOR_NETWORK_UP: ['Network Up', 'MB', 'mdi:upload'],
-    CONTAINER_MONITOR_NETWORK_DOWN: ['Network Down', 'MB', 'mdi:download'],
+    CONTAINER_MONITOR_STATUS: ['Status', None, 'mdi:checkbox-marked-circle-outline', None],
+    CONTAINER_MONITOR_UPTIME: ['Up Time', '', 'mdi:clock', 'timestamp'],
+    CONTAINER_MONITOR_IMAGE: ['Image', None, 'mdi:information-outline', None],
+    CONTAINER_MONITOR_MEMORY_USAGE: ['Memory use', 'MB', 'mdi:memory', None],
+    CONTAINER_MONITOR_MEMORY_PERCENTAGE: ['Memory use (percent)', '%', 'mdi:memory', None],
+    CONTAINER_MONITOR_CPU_PERCENTAGE: ['CPU use', '%', 'mdi:chip', None],
+    CONTAINER_MONITOR_NETWORK_UP: ['Network Up', 'MB', 'mdi:upload', None],
+    CONTAINER_MONITOR_NETWORK_DOWN: ['Network Down', 'MB', 'mdi:download', None],
 }
 
 _MONITORED_CONDITIONS = \

@@ -85,6 +85,7 @@ class DockerUtilSensor(Entity):
         self._var_name = _UTILISATION_MON_COND[variable][0]
         self._var_unit = _UTILISATION_MON_COND[variable][1]
         self._var_icon = _UTILISATION_MON_COND[variable][2]
+        self._var_class = _UTILISATION_MON_COND[variable][3]
 
         self._state = None
         self._attributes = {
@@ -108,6 +109,11 @@ class DockerUtilSensor(Entity):
     def state(self):
         """Return the state of the sensor."""
         return self._state
+
+    @property
+    def device_class(self):
+        """Return the class of this sensor."""
+        return self._var_class
 
     @property
     def unit_of_measurement(self):
@@ -143,6 +149,7 @@ class DockerContainerSensor(Entity):
         self._var_name = _CONTAINER_MON_COND[variable][0]
         self._var_unit = _CONTAINER_MON_COND[variable][1]
         self._var_icon = _CONTAINER_MON_COND[variable][2]
+        self._var_class = _CONTAINER_MON_COND[variable][3]
 
         self._state = None
         self._attributes = {
@@ -161,8 +168,10 @@ class DockerContainerSensor(Entity):
             # Info
             if self._var_id == CONTAINER_MONITOR_STATUS:
                 state = stats['info']['status']
-            if self._var_id == CONTAINER_MONITOR_UPTIME:
-                state = stats['info']['started']
+            elif self._var_id == CONTAINER_MONITOR_UPTIME:
+                up_time = stats.get('info', {}).get('started')
+                if up_time is not None:
+                    state = dt_util.as_local(up_time).isoformat()
             elif self._var_id == CONTAINER_MONITOR_IMAGE:
                 state = stats['info']['image'][0]  # get first from array
             # cpu
@@ -171,7 +180,6 @@ class DockerContainerSensor(Entity):
             # memory
             elif self._var_id == CONTAINER_MONITOR_MEMORY_USAGE:
                 use = stats.get('memory', {}).get('usage')
-                state = None
                 if use is not None:
                     state = round(use / (1024 ** 2), PRECISION)  # Bytes to MB
             elif self._var_id == CONTAINER_MONITOR_MEMORY_PERCENTAGE:
@@ -231,6 +239,11 @@ class DockerContainerSensor(Entity):
     def state(self):
         """Return the state of the sensor."""
         return self._state
+
+    @property
+    def device_class(self):
+        """Return the class of this sensor."""
+        return self._var_class
 
     @property
     def unit_of_measurement(self):
