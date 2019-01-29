@@ -165,8 +165,6 @@ class DockerContainerSensor(Entity):
             self._name, self._var_name))
 
         def update_callback(stats):
-            _LOGGER.debug("Received callback with message: {}".format(stats))
-
             state = None
             # Info
             if self._var_id == CONTAINER_MONITOR_STATUS:
