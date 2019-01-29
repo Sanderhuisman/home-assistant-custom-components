@@ -41,13 +41,14 @@ DEPENDENCIES = ['docker_monitor']
 
 _LOGGER = logging.getLogger(__name__)
 
-ATTR_VERSION_API = 'Api_version'
-ATTR_VERSION_OS = 'Os'
-ATTR_VERSION_ARCH = 'Architecture'
-ATTR_ONLINE_CPUS = 'Online_CPUs'
-ATTR_MEMORY_LIMIT = 'Memory_limit'
 ATTR_CREATED = 'Created'
+ATTR_IMAGE = 'Image'
+ATTR_MEMORY_LIMIT = 'Memory_limit'
+ATTR_ONLINE_CPUS = 'Online_CPUs'
 ATTR_STARTED_AT = 'Started_at'
+ATTR_VERSION_API = 'Api_version'
+ATTR_VERSION_ARCH = 'Architecture'
+ATTR_VERSION_OS = 'Os'
 
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
@@ -196,7 +197,13 @@ class DockerContainerSensor(Entity):
             self._state = state
 
             # Attributes
-            if self._var_id in (CONTAINER_MONITOR_CPU_PERCENTAGE):
+            if self._var_id in (CONTAINER_MONITOR_STATUS):
+                self._attributes[ATTR_IMAGE] = state = stats['info']['image'][0]
+                self._attributes[ATTR_CREATED] = dt_util.as_local(
+                    stats['info']['created']).isoformat()
+                self._attributes[ATTR_STARTED_AT] = dt_util.as_local(
+                    stats['info']['started']).isoformat()
+            elif self._var_id in (CONTAINER_MONITOR_CPU_PERCENTAGE):
                 cpus = stats.get('cpu', {}).get('online_cpus')
                 if cpus is not None:
                     self._attributes[ATTR_ONLINE_CPUS] = cpus
@@ -205,11 +212,6 @@ class DockerContainerSensor(Entity):
                 if limit is not None:
                     self._attributes[ATTR_MEMORY_LIMIT] = str(
                         round(limit / (1024 ** 2), PRECISION)) + ' MB'
-
-            self._attributes[ATTR_CREATED] = dt_util.as_local(
-                stats['info']['created']).isoformat()
-            self._attributes[ATTR_STARTED_AT] = dt_util.as_local(
-                stats['info']['started']).isoformat()
 
             self.schedule_update_ha_state()
 
