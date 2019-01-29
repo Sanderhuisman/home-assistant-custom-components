@@ -51,11 +51,13 @@ UTILISATION_MONITOR_VERSION = 'utilization_version'
 CONTAINER_MONITOR_STATUS = 'container_status'
 CONTAINER_MONITOR_UPTIME = 'container_uptime'
 CONTAINER_MONITOR_IMAGE = 'container_image'
+CONTAINER_MONITOR_CPU_PERCENTAGE = 'container_cpu_percentage_usage'
 CONTAINER_MONITOR_MEMORY_USAGE = 'container_memory_usage'
 CONTAINER_MONITOR_MEMORY_PERCENTAGE = 'container_memory_percentage_usage'
-CONTAINER_MONITOR_CPU_PERCENTAGE = 'container_cpu_percentage_usage'
-CONTAINER_MONITOR_NETWORK_UP = 'container_network_up'
-CONTAINER_MONITOR_NETWORK_DOWN = 'container_network_down'
+CONTAINER_MONITOR_NETWORK_SPEED_UP = 'container_network_speed_up'
+CONTAINER_MONITOR_NETWORK_SPEED_DOWN = 'container_network_speed_down'
+CONTAINER_MONITOR_NETWORK_TOTAL_UP = 'container_network_total_up'
+CONTAINER_MONITOR_NETWORK_TOTAL_DOWN = 'container_network_total_down'
 
 _UTILISATION_MON_COND = {
     UTILISATION_MONITOR_VERSION: ['Version', None, 'mdi:information-outline', None],
@@ -65,11 +67,13 @@ _CONTAINER_MON_COND = {
     CONTAINER_MONITOR_STATUS: ['Status', None, 'mdi:checkbox-marked-circle-outline', None],
     CONTAINER_MONITOR_UPTIME: ['Up Time', '', 'mdi:clock', 'timestamp'],
     CONTAINER_MONITOR_IMAGE: ['Image', None, 'mdi:information-outline', None],
+    CONTAINER_MONITOR_CPU_PERCENTAGE: ['CPU use', '%', 'mdi:chip', None],
     CONTAINER_MONITOR_MEMORY_USAGE: ['Memory use', 'MB', 'mdi:memory', None],
     CONTAINER_MONITOR_MEMORY_PERCENTAGE: ['Memory use (percent)', '%', 'mdi:memory', None],
-    CONTAINER_MONITOR_CPU_PERCENTAGE: ['CPU use', '%', 'mdi:chip', None],
-    CONTAINER_MONITOR_NETWORK_UP: ['Network Up', 'MB', 'mdi:upload', None],
-    CONTAINER_MONITOR_NETWORK_DOWN: ['Network Down', 'MB', 'mdi:download', None],
+    CONTAINER_MONITOR_NETWORK_SPEED_UP: ['Network speed Up', 'kB/s', 'mdi:upload', None],
+    CONTAINER_MONITOR_NETWORK_SPEED_DOWN: ['Network speed Down', 'kB/s', 'mdi:download', None],
+    CONTAINER_MONITOR_NETWORK_TOTAL_UP: ['Network total Up', 'MB', 'mdi:upload', None],
+    CONTAINER_MONITOR_NETWORK_TOTAL_DOWN: ['Network total Down', 'MB', 'mdi:download', None],
 }
 
 _MONITORED_CONDITIONS = \
@@ -126,8 +130,8 @@ def setup(hass, config):
         return True
 
 
-""" 
-Docker API abstraction 
+"""
+Docker API abstraction
 """
 
 
@@ -245,9 +249,12 @@ class DockerContainerAPI:
             callback(message)
 
     def _runnable(self, interval):
+        from dateutil import parser
+
         stream = self._container.stats(stream=True, decode=True)
 
         cpu_old = {}
+        network_old = {}
         for raw in stream:
             if self._stopper.isSet():
                 break
@@ -256,6 +263,8 @@ class DockerContainerAPI:
 
             stats['info'] = self.get_info()
             if stats['info']['status'] in ('running', 'paused'):
+                stats['read'] = parser.parse(raw['read'])
+
                 cpu_stats = {}
                 try:
                     cpu_new = {}
@@ -302,17 +311,37 @@ class DockerContainerAPI:
 
                 network_stats = {}
                 try:
-
+                    network_new = {}
                     _LOGGER.debug("Found network stats: {}".format(raw["networks"]))
+                    network_stats['total_tx'] = 0
+                    network_stats['total_rx'] = 0
+                    for if_name, data in raw["networks"].items():
+                        _LOGGER.debug("Stats for interface {} -> up {} / down {}".format(
+                            if_name, data["tx_bytes"], data["rx_bytes"]))
+                        network_stats['total_tx'] += data["tx_bytes"]
+                        network_stats['total_rx'] += data["rx_bytes"]
 
-                    netstats = raw["networks"]['eth0']
-                    network_stats['total_rx'] = netstats['rx_bytes']
-                    network_stats['total_tx'] = netstats['tx_bytes']
+                    network_new = {
+                        'read': stats['read'],
+                        'total_tx': network_stats['total_tx'],
+                        'total_rx': network_stats['total_rx'],
+                    }
+
                 except KeyError as e:
                     # raw_stats do not have NETWORK information
                     _LOGGER.info("Cannot grab NET usage for container {} ({})".format(
                         self._container.id, e))
                     _LOGGER.debug(raw)
+                else:
+                    if network_old:
+                        tx = network_new['total_tx'] - network_old['total_tx']
+                        rx = network_new['total_rx'] - network_old['total_rx']
+                        tim = (network_new['read'] - network_old['read']).total_seconds()
+
+                        network_stats['speed_tx'] = round(float(tx) / tim, PRECISION)
+                        network_stats['speed_rx'] = round(float(rx) / tim, PRECISION)
+
+                    network_old = network_new
 
                 stats['cpu'] = cpu_stats
                 stats['memory'] = memory_stats

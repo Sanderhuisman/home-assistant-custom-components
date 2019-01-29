@@ -25,8 +25,10 @@ from custom_components.docker_monitor import (
     CONTAINER_MONITOR_IMAGE,
     CONTAINER_MONITOR_MEMORY_PERCENTAGE,
     CONTAINER_MONITOR_MEMORY_USAGE,
-    CONTAINER_MONITOR_NETWORK_DOWN,
-    CONTAINER_MONITOR_NETWORK_UP,
+    CONTAINER_MONITOR_NETWORK_SPEED_DOWN,
+    CONTAINER_MONITOR_NETWORK_TOTAL_DOWN,
+    CONTAINER_MONITOR_NETWORK_SPEED_UP,
+    CONTAINER_MONITOR_NETWORK_TOTAL_UP,
     CONTAINER_MONITOR_STATUS,
     CONTAINER_MONITOR_UPTIME,
     DATA_CONFIG,
@@ -163,8 +165,6 @@ class DockerContainerSensor(Entity):
             self._name, self._var_name))
 
         def update_callback(stats):
-            _LOGGER.debug("Received callback with message: {}".format(stats))
-
             state = None
             # Info
             if self._var_id == CONTAINER_MONITOR_STATUS:
@@ -186,14 +186,24 @@ class DockerContainerSensor(Entity):
             elif self._var_id == CONTAINER_MONITOR_MEMORY_PERCENTAGE:
                 state = stats.get('memory', {}).get('usage_percent')
             # network
-            elif self._var_id == CONTAINER_MONITOR_NETWORK_UP:
-                up = stats.get('network', {}).get('total_tx')
+            elif self._var_id == CONTAINER_MONITOR_NETWORK_SPEED_UP:
+                up = stats.get('network', {}).get('speed_tx')
+                state = None
+                if up is not None:
+                    state = round(up / (1024), PRECISION)  # Bytes to kB
+            elif self._var_id == CONTAINER_MONITOR_NETWORK_SPEED_DOWN:
+                down = stats.get('network', {}).get('speed_rx')
+                if down is not None:
+                    state = round(down / (1024), PRECISION)
+            elif self._var_id == CONTAINER_MONITOR_NETWORK_TOTAL_UP:
+                up = stats.get('network', {}).get('total_tx') # Bytes to kB
                 if up is not None:
                     state = round(up / (1024 ** 2), PRECISION)
-            elif self._var_id == CONTAINER_MONITOR_NETWORK_DOWN:
+            elif self._var_id == CONTAINER_MONITOR_NETWORK_TOTAL_DOWN:
                 down = stats.get('network', {}).get('total_rx')
                 if down is not None:
                     state = round(down / (1024 ** 2), PRECISION)
+
             self._state = state
 
             # Attributes
