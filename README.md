@@ -20,7 +20,7 @@ To use the `docker_monitor` in your installation, add the following to your `con
 # Example configuration.yaml entry
 docker_monitor:
   containers:
-    - homeassistant_home-assistant_1
+    - homeassistant_homeassistant_1
     - homeassistant_mariadb_1
     - homeassistant_mosquitto_1
   monitored_conditions:
@@ -40,16 +40,19 @@ docker_monitor:
 | containers           | list         (Optional)  | Array of containers to monitor. Defaults to all containers.           |
 | monitored_conditions | list         (Optional)  | Array of conditions to be monitored. Defaults to all conditions       |
 
-| Condition                         | Description               | Unit  |
-| --------------------------------- | ------------------------- | ----- |
-| utilization_version               | Docker version            | -     |
-| container_status                  | Container status          | -     |
-| container_image                   | Container image           | -     |
-| container_cpu_percentage_usage    | CPU usage                 | %     |
-| container_memory_usage            | Memory usage              | MB    |
-| container_memory_percentage_usage | Memory usage              | %     |
-| container_network_up              | Network total upstream    | MB    |
-| container_network_down            | Network total downstream  | MB    |
+| Condition                         | Description                     | Unit  |
+| --------------------------------- | ------------------------------- | ----- |
+| utilization_version               | Docker version                  | -     |
+| container_status                  | Container status                | -     |
+| container_up_time                 | Container start time            | -     |
+| container_image                   | Container image                 | -     |
+| container_cpu_percentage_usage    | CPU usage                       | %     |
+| container_memory_usage            | Memory usage                    | MB    |
+| container_memory_percentage_usage | Memory usage                    | %     |
+| container_network_speed_up        | Network total speed upstream    | kB/s  |
+| container_network_speed_down      | Network total speed downstream  | kB/s  |
+| container_network_total_up        | Network total upstream          | MB    |
+| container_network_total_down      | Network total downstream        | MB    |
 
 ### Eetlijst Sensor <a name="eetlijst"></a>
 
