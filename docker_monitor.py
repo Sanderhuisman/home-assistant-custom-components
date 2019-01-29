@@ -312,17 +312,14 @@ class DockerContainerAPI:
                 network_stats = {}
                 try:
                     network_new = {}
-                    # _LOGGER.debug("Found network stats: {}".format(raw["networks"]))
-                    networks = raw["networks"]
-                    for if_name, data in networks.items():
-                        _LOGGER.info("Stats for interface {} -> up {} / down {}".format(
+                    _LOGGER.debug("Found network stats: {}".format(raw["networks"]))
+                    network_stats['total_tx'] = 0
+                    network_stats['total_rx'] = 0
+                    for if_name, data in raw["networks"].items():
+                        _LOGGER.debug("Stats for interface {} -> up {} / down {}".format(
                             if_name, data["tx_bytes"], data["rx_bytes"]))
-                        t = data["tx_bytes"]
-                        r = data["rx_bytes"]
-
-                    netstats = raw["networks"]['eth0']
-                    network_stats['total_tx'] = netstats['tx_bytes']
-                    network_stats['total_rx'] = netstats['rx_bytes']
+                        network_stats['total_tx'] += data["tx_bytes"]
+                        network_stats['total_rx'] += data["rx_bytes"]
 
                     network_new = {
                         'read': stats['read'],
