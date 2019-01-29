@@ -49,6 +49,7 @@ CONF_CONTAINERS = 'containers'
 UTILISATION_MONITOR_VERSION = 'utilization_version'
 
 CONTAINER_MONITOR_STATUS = 'container_status'
+CONTAINER_MONITOR_UPTIME = 'container_uptime'
 CONTAINER_MONITOR_IMAGE = 'container_image'
 CONTAINER_MONITOR_MEMORY_USAGE = 'container_memory_usage'
 CONTAINER_MONITOR_MEMORY_PERCENTAGE = 'container_memory_percentage_usage'
@@ -59,19 +60,20 @@ CONTAINER_MONITOR_NETWORK_TOTAL_UP = 'container_network_total_up'
 CONTAINER_MONITOR_NETWORK_TOTAL_DOWN = 'container_network_total_down'
 
 _UTILISATION_MON_COND = {
-    UTILISATION_MONITOR_VERSION: ['Version', None, 'mdi:information-outline'],
+    UTILISATION_MONITOR_VERSION: ['Version', None, 'mdi:information-outline', None],
 }
 
 _CONTAINER_MON_COND = {
-    CONTAINER_MONITOR_STATUS: ['Status', None, 'mdi:checkbox-marked-circle-outline'],
-    CONTAINER_MONITOR_IMAGE: ['Image', None, 'mdi:information-outline'],
-    CONTAINER_MONITOR_MEMORY_USAGE: ['Memory use', 'MB', 'mdi:memory'],
-    CONTAINER_MONITOR_MEMORY_PERCENTAGE: ['Memory use (percent)', '%', 'mdi:memory'],
-    CONTAINER_MONITOR_CPU_PERCENTAGE: ['CPU use', '%', 'mdi:chip'],
-    CONTAINER_MONITOR_NETWORK_SPEED_UP: ['Network speed Up', 'kB/s', 'mdi:upload'],
-    CONTAINER_MONITOR_NETWORK_SPEED_DOWN: ['Network speed Down', 'kB/s', 'mdi:download'],
-    CONTAINER_MONITOR_NETWORK_TOTAL_UP: ['Network total Up', 'MB', 'mdi:upload'],
-    CONTAINER_MONITOR_NETWORK_TOTAL_DOWN: ['Network total Down', 'MB', 'mdi:download'],
+    CONTAINER_MONITOR_STATUS: ['Status', None, 'mdi:checkbox-marked-circle-outline', None],
+    CONTAINER_MONITOR_UPTIME: ['Up Time', '', 'mdi:clock', 'timestamp'],
+    CONTAINER_MONITOR_IMAGE: ['Image', None, 'mdi:information-outline', None],
+    CONTAINER_MONITOR_CPU_PERCENTAGE: ['CPU use', '%', 'mdi:chip', None],
+    CONTAINER_MONITOR_MEMORY_USAGE: ['Memory use', 'MB', 'mdi:memory', None],
+    CONTAINER_MONITOR_MEMORY_PERCENTAGE: ['Memory use (percent)', '%', 'mdi:memory', None],
+    CONTAINER_MONITOR_NETWORK_SPEED_UP: ['Network speed Up', 'kB/s', 'mdi:upload', None],
+    CONTAINER_MONITOR_NETWORK_SPEED_DOWN: ['Network speed Down', 'kB/s', 'mdi:download', None],
+    CONTAINER_MONITOR_NETWORK_TOTAL_UP: ['Network total Up', 'MB', 'mdi:upload', None],
+    CONTAINER_MONITOR_NETWORK_TOTAL_DOWN: ['Network total Down', 'MB', 'mdi:download', None],
 }
 
 _MONITORED_CONDITIONS = \
@@ -128,8 +130,8 @@ def setup(hass, config):
         return True
 
 
-""" 
-Docker API abstraction 
+"""
+Docker API abstraction
 """
 
 
@@ -327,7 +329,7 @@ class DockerContainerAPI:
                         'total_tx': network_stats['total_tx'],
                         'total_rx': network_stats['total_rx'],
                     }
-                    
+
                 except KeyError as e:
                     # raw_stats do not have NETWORK information
                     _LOGGER.info("Cannot grab NET usage for container {} ({})".format(
