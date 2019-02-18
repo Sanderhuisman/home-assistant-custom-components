@@ -12,6 +12,8 @@
 
 The Docker monitor allows you to monitor statistics and turn on/off containers. The monitor can connected to a daemon through the url parameter. When home assistant is used within a Docker container, the daemon can be mounted as follows `-v /var/run/docker.sock:/var/run/docker.sock`.
 
+**Important note: as the loading path of platforms have been changed in issue [#20807](https://github.com/home-assistant/home-assistant/pull/20807), the current version is not compliant with HA versions from 0.88 and above. This is currently been tested and will soon be released**
+
 #### Configuration
 
 To use the `docker_monitor` in your installation, add the following to your `configuration.yaml` file:
