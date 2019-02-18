@@ -21,6 +21,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers.discovery import load_platform
+from homeassistant.util import slugify as util_slugify
 
 REQUIREMENTS = ['docker==3.7.0', 'python-dateutil==2.7.5']
 
@@ -34,7 +35,7 @@ DOCKER_HANDLE = 'docker_handle'
 DATA_DOCKER_API = 'api'
 DATA_CONFIG = 'config'
 
-EVENT_CONTAINER = 'docker_container_event'
+EVENT_CONTAINER = 'container_event'
 
 PRECISION = 2
 
@@ -137,13 +138,14 @@ def setup(hass, config):
 
         hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, monitor_stop)
 
-
         def event_listener(message):
-            hass.bus.fire(EVENT_CONTAINER, message)
+            event = util_slugify("{} {}".format(config[DOMAIN][CONF_NAME], EVENT_CONTAINER))
+            _LOGGER.debug("Sending event {} notification with message {}".format(event, message))
+            hass.bus.fire(event, message)
 
         if config[DOMAIN][CONF_EVENTS]:
             api.events(event_listener)
-            
+
         return True
 
 
@@ -209,7 +211,7 @@ class DockerAPI:
         self._events = self._client.events(decode=True)
         for event in self._events:
             try:
-                # Only interested in comtainer events
+                # Only interested in container events
                 if event['Type'] == 'container':
                     message = {
                         'Status': event['status'],
