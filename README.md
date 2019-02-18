@@ -10,7 +10,7 @@
 
 ### Docker Monitor <a name="docker_monitor"></a>
 
-The Docker monitor allows to monitor statistics and turn on/off containers. The monitor can connected to a Deamon through the url parameter. When home assistant is used within a Docker container, the Deamon can be mounted as follows `-v /var/run/docker.sock:/var/run/docker.sock`.
+The Docker monitor allows you to monitor statistics and turn on/off containers. The monitor can connected to a daemon through the url parameter. When home assistant is used within a Docker container, the daemon can be mounted as follows `-v /var/run/docker.sock:/var/run/docker.sock`.
 
 #### Configuration
 
