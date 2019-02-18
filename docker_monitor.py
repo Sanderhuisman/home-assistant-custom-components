@@ -14,6 +14,7 @@ import voluptuous as vol
 from homeassistant.const import (
     ATTR_ATTRIBUTION,
     CONF_MONITORED_CONDITIONS,
+    CONF_NAME,
     CONF_SCAN_INTERVAL,
     CONF_URL,
     EVENT_HOMEASSISTANT_STOP
@@ -38,6 +39,7 @@ EVENT_CONTAINER = 'docker_container_event'
 PRECISION = 2
 
 DEFAULT_URL = 'unix://var/run/docker.sock'
+DEFAULT_NAME = 'Docker'
 
 DEFAULT_SCAN_INTERVAL = timedelta(seconds=10)
 
@@ -85,6 +87,8 @@ _MONITORED_CONDITIONS = \
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
+        vol.Optional(CONF_NAME, default=DEFAULT_NAME):
+            cv.string,
         vol.Optional(CONF_URL, default=DEFAULT_URL):
             cv.string,
         vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL):
@@ -117,6 +121,7 @@ def setup(hass, config):
         hass.data[DOCKER_HANDLE] = {}
         hass.data[DOCKER_HANDLE][DATA_DOCKER_API] = api
         hass.data[DOCKER_HANDLE][DATA_CONFIG] = {
+            CONF_NAME: config[DOMAIN][CONF_NAME],
             CONF_CONTAINERS: config[DOMAIN].get(CONF_CONTAINERS, [container.get_name() for container in api.get_containers()]),
             CONF_MONITORED_CONDITIONS: config[DOMAIN].get(CONF_MONITORED_CONDITIONS),
             CONF_SCAN_INTERVAL: config[DOMAIN].get(CONF_SCAN_INTERVAL),
