@@ -35,8 +35,8 @@ docker_monitor:
 
 | Parameter            | Type                     | Description                                                           |
 | -------------------- | ------------------------ | --------------------------------------------------------------------- |
-| url                  | string       (Optional)  | Host URL of Docker daemon. Defaults to `unix://var/run/docker.sock`.  |
 | name                 | string       (Optional)  | Client name of Docker daemon. Defaults to `Docker`.                   |
+| url                  | string       (Optional)  | Host URL of Docker daemon. Defaults to `unix://var/run/docker.sock`.  |
 | scan_interval        | time_period  (Optional)  | Update interval. Defaults to 10 seconds.                              |
 | containers           | list         (Optional)  | Array of containers to monitor. Defaults to all containers.           |
 | monitored_conditions | list         (Optional)  | Array of conditions to be monitored. Defaults to all conditions       |
