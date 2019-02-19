@@ -210,133 +210,23 @@ class DockerAPI:
     def _runnable(self):
         self._events = self._client.events(decode=True)
         for event in self._events:
+            _LOGGER.debug("Event: ({})".format(event))
             try:
                 # Only interested in container events
                 if event['Type'] == 'container':
                     message = {
+                        'Container': event['Actor']['Attributes'].get('name'),
+                        'Image': event['from'],
                         'Status': event['status'],
                         'Id': event['id'],
-                        'Image': event['from'],
                     }
                     _LOGGER.info("Container event: ({})".format(message))
 
                     for callback in self._event_callback_listeners:
                         callback(message)
             except KeyError as e:
-                _LOGGER.info("Key error: ({})".format(e))
+                _LOGGER.error("Key error: ({})".format(e))
                 pass
-
-        # Events({
-        #     'status': 'create', 
-        #     'id': 'b839a32443fe9affdd15cea0766daca68823d5ad0e7657f0bb6e0ce4dc64e5dc', 
-        #     'from': 'hello-world', 
-        #     'Type': 'container', 
-        #     'Action': 'create', 
-        #     'Actor': {
-        #        'ID': 'b839a32443fe9affdd15cea0766daca68823d5ad0e7657f0bb6e0ce4dc64e5dc', 
-        #        'Attributes': {
-        #            'image': 'hello-world', 
-        #            'name': 'competent_vaughan'
-        #         }
-        #     }, 
-        #     'scope': 'local', 
-        #     'time': 1549800406, 
-        #     'timeNano': 1549800406683583477
-        # })
-        # Events ({
-        #     'status': 'attach', 
-        #     'id': 'b839a32443fe9affdd15cea0766daca68823d5ad0e7657f0bb6e0ce4dc64e5dc', 
-        #     'from': 'hello-world', 
-        #     'Type': 'container', 
-        #     'Action': 'attach', 
-        #     'Actor': {
-        #         'ID': 'b839a32443fe9affdd15cea0766daca68823d5ad0e7657f0bb6e0ce4dc64e5dc', 
-        #         'Attributes': {
-        #             'image': 'hello-world', 
-        #             'name': 'competent_vaughan'
-        #         }
-        #     }, 
-        #     'scope': 'local', 
-        #     'time': 1549800406, 
-        #     'timeNano': 1549800406691013052
-        # })
-        # Events ({
-        #     'Type': 'network', 
-        #     'Action': 'connect', 
-        #     'Actor': {
-        #         'ID': 'e3c877a3ee7a912f110f2942bc483cf8869f003dcb422f3256d26719fd150543',
-        #         'Attributes': {
-        #             'container': 'b839a32443fe9affdd15cea0766daca68823d5ad0e7657f0bb6e0ce4dc64e5dc', 
-        #             'name': 'bridge', 
-        #             'type': 'bridge'
-        #         }
-        #     }, 
-        #     'scope': 'local', 
-        #     'time': 1549800406, 
-        #     'timeNano': 1549800406735575951
-        # })
-        # Events ({
-        #     'status': 'start', 
-        #     'id': 'b839a32443fe9affdd15cea0766daca68823d5ad0e7657f0bb6e0ce4dc64e5dc', 
-        #     'from': 'hello-world', 
-        #     'Type': 'container', 
-        #     'Action': 'start', 
-        #     'Actor': {
-        #         'ID': 'b839a32443fe9affdd15cea0766daca68823d5ad0e7657f0bb6e0ce4dc64e5dc', 
-        #         'Attributes': {
-        #             'image': 'hello-world', 
-        #             'name': 'competent_vaughan'
-        #         }
-        #     }, 
-        #     'scope': 'local', 
-        #     'time': 1549800407, 
-        #     'timeNano': 1549800407938752593
-        # })
-        # Events ({
-        #     'status': 'die', 
-        #     'id': 'b839a32443fe9affdd15cea0766daca68823d5ad0e7657f0bb6e0ce4dc64e5dc', 
-        #     'from': 'hello-world', 
-        #     'Type': 'container', 
-        #     'Action': 'die', 
-        #     'Actor': {
-        #         'ID': 'b839a32443fe9affdd15cea0766daca68823d5ad0e7657f0bb6e0ce4dc64e5dc', 
-        #         'Attributes': {
-        #             'exitCode': '0', 
-        #             'image': 'hello-world', 
-        #             'name': 'competent_vaughan'
-        #         }
-        #     }, 
-        #     'scope': 'local', 
-        #     'time': 1549800408, 
-        #     'timeNano': 1549800408023548922
-        # })
-        # Events ({
-        #     'status': 'exec_create: /bin/bash ', 
-        #     'id': '10ad41e6d26067b1035d1e172743c0b6bbf149477cf6b5ef4bd23ffb9c01d29e', 
-        #     'from': 'homeassistant/home-assistant:0.85.1', 
-        #     'Type': 'container', 
-        #     'Action': 'exec_create: /bin/bash ', 
-        #     'Actor': {
-        #         'ID': '10ad41e6d26067b1035d1e172743c0b6bbf149477cf6b5ef4bd23ffb9c01d29e', 
-        #         'Attributes': {
-        #             'com.docker.compose.config-hash': '8ada8a870f2799b2da2ddf22536d69a3dc6e9da7e3a464511780a5243e9b6e98',
-        #             'com.docker.compose.container-number': '1', 
-        #             'com.docker.compose.oneoff': 'False', 
-        #             'com.docker.compose.project': 'homeassistant', 
-        #             'com.docker.compose.service': 'homeassistant', 
-        #             'com.docker.compose.version': '1.23.2', 
-        #             'execID': 'b59eca8ebba875acc024dfe134341ee70ac3f2a7fb348574631c50f2b7b15985', 
-        #             'image': 'homeassistant/home-assistant:0.85.1', 
-        #             'maintainer': 'Paulus Schoutsen <Paulus@PaulusSchoutsen.nl>', 
-        #             'name': 'homeassistant_homeassistant_1'
-        #         }
-        #     }, 
-        #     'scope': 'local', 
-        #     'time': 1549801348, 
-        #     'timeNano': 1549801348373165988
-        # })
-        # Events ({'status': 'exec_start: /bin/bash ', 'id': '10ad41e6d26067b1035d1e172743c0b6bbf149477cf6b5ef4bd23ffb9c01d29e', 'from': 'homeassistant/home-assistant:0.85.1', 'Type': 'container', 'Action': 'exec_start: /bin/bash ', 'Actor': {'ID': '10ad41e6d26067b1035d1e172743c0b6bbf149477cf6b5ef4bd23ffb9c01d29e', 'Attributes': {'com.docker.compose.config-hash': '8ada8a870f2799b2da2ddf22536d69a3dc6e9da7e3a464511780a5243e9b6e98', 'com.docker.compose.container-number': '1', 'com.docker.compose.oneoff': 'False', 'com.docker.compose.project': 'homeassistant', 'com.docker.compose.service': 'homeassistant', 'com.docker.compose.version': '1.23.2', 'execID': 'b59eca8ebba875acc024dfe134341ee70ac3f2a7fb348574631c50f2b7b15985', 'image': 'homeassistant/home-assistant:0.85.1', 'maintainer': 'Paulus Schoutsen <Paulus@PaulusSchoutsen.nl>', 'name': 'homeassistant_homeassistant_1'}}, 'scope': 'local', 'time': 1549801348, 'timeNano': 1549801348375316303})
-        # Events ({'status': 'exec_die', 'id': '10ad41e6d26067b1035d1e172743c0b6bbf149477cf6b5ef4bd23ffb9c01d29e', 'from': 'homeassistant/home-assistant:0.85.1', 'Type': 'container', 'Action': 'exec_die', 'Actor': {'ID': '10ad41e6d26067b1035d1e172743c0b6bbf149477cf6b5ef4bd23ffb9c01d29e', 'Attributes': {'com.docker.compose.config-hash': '8ada8a870f2799b2da2ddf22536d69a3dc6e9da7e3a464511780a5243e9b6e98', 'com.docker.compose.container-number': '1', 'com.docker.compose.oneoff': 'False', 'com.docker.compose.project': 'homeassistant', 'com.docker.compose.service': 'homeassistant', 'com.docker.compose.version': '1.23.2', 'execID': 'b59eca8ebba875acc024dfe134341ee70ac3f2a7fb348574631c50f2b7b15985', 'exitCode': '0', 'image': 'homeassistant/home-assistant:0.85.1', 'maintainer': 'Paulus Schoutsen <Paulus@PaulusSchoutsen.nl>', 'name': 'homeassistant_homeassistant_1'}}, 'scope': 'local', 'time': 1549801354, 'timeNano': 1549801354927763186})
 
     def get_containers(self):
         return list(self._containers.values())
