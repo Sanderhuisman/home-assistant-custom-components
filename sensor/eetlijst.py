@@ -25,7 +25,7 @@ from homeassistant.util import Throttle
 
 VERSION = '0.0.1'
 
-REQUIREMENTS = ['beautifulsoup4==4.7.0']
+REQUIREMENTS = ['beautifulsoup4==4.7.1']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -102,8 +102,7 @@ class EetlijstApi:
             ["th", "a"], title=RE_RESIDENTS)]
 
         # Grap the list name
-        self.accountname = soup.find(["head", "title"]).text.replace(
-            "Eetlijst.nl - ", "", 1).strip()
+        self.accountname = soup.find('head').find('title').text.replace("Eetlijst.nl - ", "", 1).strip()
 
         # Find the main table by first navigating to a unique cell.
         start = soup.find(["table", "tbody", "tr", "th"], width="80")
@@ -347,7 +346,7 @@ class EetlijstSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor, if any."""
-        return "{}_{}".format(self.accountname, self.resident)
+        return "{} {}".format(self.accountname, self.resident)
 
     @property
     def icon(self):
