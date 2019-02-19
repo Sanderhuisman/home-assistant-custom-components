@@ -21,6 +21,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers.discovery import load_platform
+from homeassistant.util import slugify as util_slugify
 
 REQUIREMENTS = ['docker==3.7.0', 'python-dateutil==2.7.5']
 
@@ -34,6 +35,8 @@ DOCKER_HANDLE = 'docker_handle'
 DATA_DOCKER_API = 'api'
 DATA_CONFIG = 'config'
 
+EVENT_CONTAINER = 'container_event'
+
 PRECISION = 2
 
 DEFAULT_URL = 'unix://var/run/docker.sock'
@@ -46,6 +49,7 @@ DOCKER_TYPE = [
     'switch'
 ]
 
+CONF_EVENTS = 'events'
 CONF_CONTAINERS = 'containers'
 
 UTILISATION_MONITOR_VERSION = 'utilization_version'
@@ -90,6 +94,8 @@ CONFIG_SCHEMA = vol.Schema({
             cv.string,
         vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL):
             cv.time_period,
+        vol.Optional(CONF_EVENTS, default=False):
+            cv.boolean,
         vol.Optional(CONF_MONITORED_CONDITIONS, default=_MONITORED_CONDITIONS):
             vol.All(cv.ensure_list, [vol.In(_MONITORED_CONDITIONS)]),
         vol.Optional(CONF_CONTAINERS):
@@ -132,6 +138,14 @@ def setup(hass, config):
 
         hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, monitor_stop)
 
+        def event_listener(message):
+            event = util_slugify("{} {}".format(config[DOMAIN][CONF_NAME], EVENT_CONTAINER))
+            _LOGGER.debug("Sending event {} notification with message {}".format(event, message))
+            hass.bus.fire(event, message)
+
+        if config[DOMAIN][CONF_EVENTS]:
+            api.events(event_listener)
+
         return True
 
 
@@ -150,6 +164,7 @@ class DockerAPI:
             raise ImportError()
 
         self._containers = {}
+        self._event_callback_listeners = []
 
         try:
             self._client = docker.DockerClient(base_url=self._base_url)
@@ -164,8 +179,17 @@ class DockerAPI:
 
     def exit(self):
         _LOGGER.info("Stopping threads for Docker monitor")
+        self._events.close()
         for container in self._containers.values():
             container.exit()
+
+    def events(self, callback):
+        if not self._event_callback_listeners:
+            thread = threading.Thread(target=self._runnable, kwargs={})
+            thread.start()
+
+        if callback not in self._event_callback_listeners:
+            self._event_callback_listeners.append(callback)
 
     def get_info(self):
         version = {}
@@ -182,6 +206,27 @@ class DockerAPI:
             _LOGGER.error("Cannot get Docker version ({})".format(e))
 
         return version
+
+    def _runnable(self):
+        self._events = self._client.events(decode=True)
+        for event in self._events:
+            _LOGGER.debug("Event: ({})".format(event))
+            try:
+                # Only interested in container events
+                if event['Type'] == 'container':
+                    message = {
+                        'Container': event['Actor']['Attributes'].get('name'),
+                        'Image': event['from'],
+                        'Status': event['status'],
+                        'Id': event['id'],
+                    }
+                    _LOGGER.info("Container event: ({})".format(message))
+
+                    for callback in self._event_callback_listeners:
+                        callback(message)
+            except KeyError as e:
+                _LOGGER.error("Key error: ({})".format(e))
+                pass
 
     def get_containers(self):
         return list(self._containers.values())
