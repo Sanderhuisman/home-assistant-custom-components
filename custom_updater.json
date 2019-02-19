@@ -1,0 +1,20 @@
+{
+    "docker_monitor" : {
+       "updated_at" : "2019-02-19",
+       "version" : "0.0.1",
+       "changelog" : "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
+       "visit_repo" : "https://github.com/Sanderhuisman/home-assistant-custom-components"
+    },
+    "eetlijst" : {
+        "updated_at" : "2019-02-19",
+        "version" : "0.0.1",
+        "changelog" : "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
+        "visit_repo" : "https://github.com/Sanderhuisman/home-assistant-custom-components"
+     },
+     "luftdaten" : {
+        "updated_at" : "2019-02-19",
+        "version" : "0.0.1",
+        "changelog" : "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
+        "visit_repo" : "https://github.com/Sanderhuisman/home-assistant-custom-components"
+     }
+ }
