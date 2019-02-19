@@ -25,6 +25,8 @@ from custom_components.docker_monitor import (
     DOCKER_HANDLE
 )
 
+VERSION = '0.0.1'
+
 DEPENDENCIES = ['docker_monitor']
 
 _LOGGER = logging.getLogger(__name__)

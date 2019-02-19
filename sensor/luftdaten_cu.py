@@ -23,6 +23,8 @@ from homeassistant.const import (
 from homeassistant.helpers.entity import Entity
 from homeassistant.util import Throttle
 
+VERSION = '0.0.1'
+
 _LOGGER = logging.getLogger(__name__)
 
 BASE_URL = 'https://api.luftdaten.info/v1'

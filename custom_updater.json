@@ -1,20 +1,42 @@
 {
-    "docker_monitor" : {
-       "updated_at" : "2019-02-19",
-       "version" : "0.0.1",
-       "changelog" : "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
-       "visit_repo" : "https://github.com/Sanderhuisman/home-assistant-custom-components"
-    },
-    "eetlijst" : {
-        "updated_at" : "2019-02-19",
-        "version" : "0.0.1",
-        "changelog" : "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
-        "visit_repo" : "https://github.com/Sanderhuisman/home-assistant-custom-components"
-     },
-     "luftdaten" : {
-        "updated_at" : "2019-02-19",
-        "version" : "0.0.1",
-        "changelog" : "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
-        "visit_repo" : "https://github.com/Sanderhuisman/home-assistant-custom-components"
-     }
- }
+   "docker_monitor": {
+      "updated_at": "2019-02-19",
+      "version": "0.0.1",
+      "local_location": "custom_components/docker_monitor.py",
+      "remote_location": "https://raw.githubusercontent.com/Sanderhuisman/home-assistant-custom-components/master/docker_monitor.py",
+      "changelog": "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
+      "visit_repo": "https://github.com/Sanderhuisman/home-assistant-custom-components"
+   },
+   "docker_monitor.sensor": {
+      "updated_at": "2019-02-19",
+      "version": "0.0.1",
+      "local_location": "custom_components/sensor/docker_monitor.py",
+      "remote_location": "https://raw.githubusercontent.com/Sanderhuisman/home-assistant-custom-components/master/sensor/docker_monitor.py",
+      "changelog": "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
+      "visit_repo": "https://github.com/Sanderhuisman/home-assistant-custom-components"
+   },
+   "docker_monitor.switch": {
+      "updated_at": "2019-02-19",
+      "version": "0.0.1",
+      "local_location": "custom_components/switch/docker_monitor.py",
+      "remote_location": "https://raw.githubusercontent.com/Sanderhuisman/home-assistant-custom-components/master/switch/docker_monitor.py",
+      "changelog": "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
+      "visit_repo": "https://github.com/Sanderhuisman/home-assistant-custom-components"
+   },
+   "eetlijst.sensor": {
+      "updated_at": "2019-02-19",
+      "version": "0.0.1",
+      "local_location": "custom_components/sensor/eetlijst.py",
+      "remote_location": "https://raw.githubusercontent.com/Sanderhuisman/home-assistant-custom-components/master/sensor/eetlijst.py",
+      "changelog": "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
+      "visit_repo": "https://github.com/Sanderhuisman/home-assistant-custom-components"
+   },
+   "luftdaten.sensor": {
+      "updated_at": "2019-02-19",
+      "version": "0.0.1",
+      "local_location": "custom_components/sensor/luftdaten_cu.py",
+      "remote_location": "https://raw.githubusercontent.com/Sanderhuisman/home-assistant-custom-components/master/sensor/luftdaten_cu.py",
+      "changelog": "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
+      "visit_repo": "https://github.com/Sanderhuisman/home-assistant-custom-components"
+   }
+}
