@@ -11,7 +11,10 @@ from homeassistant.components.switch import (
     PLATFORM_SCHEMA,
     SwitchDevice
 )
-from homeassistant.const import ATTR_ATTRIBUTION
+from homeassistant.const import (
+    ATTR_ATTRIBUTION,
+    CONF_NAME
+)
 from homeassistant.core import ServiceCall
 
 from custom_components.docker_monitor import (
@@ -21,6 +24,8 @@ from custom_components.docker_monitor import (
     DATA_DOCKER_API,
     DOCKER_HANDLE
 )
+
+VERSION = '0.0.1'
 
 DEPENDENCIES = ['docker_monitor']
 
@@ -32,9 +37,10 @@ def setup_platform(hass, config, add_devices_callback, discovery_info=None):
 
     api = hass.data[DOCKER_HANDLE][DATA_DOCKER_API]
     config = hass.data[DOCKER_HANDLE][DATA_CONFIG]
+    clientname = config[CONF_NAME]
 
     containers = [container.get_name() for container in api.get_containers()]
-    switches = [ContainerSwitch(api, name)
+    switches = [ContainerSwitch(api, clientname, name)
                 for name in config[CONF_CONTAINERS] if name in containers]
     if switches:
         add_devices_callback(switches, True)
@@ -44,12 +50,13 @@ def setup_platform(hass, config, add_devices_callback, discovery_info=None):
 
 
 class ContainerSwitch(SwitchDevice):
-    def __init__(self, api, name):
+    def __init__(self, api, clientname, container_name):
         self._api = api
-        self._name = name
+        self._clientname = clientname
+        self._container_name = container_name
         self._state = False
 
-        self._container = api.get_container(name)
+        self._container = api.get_container(container_name)
 
         def update_callback(stats):
             _LOGGER.debug("Received callback with message: {}".format(stats))
@@ -69,7 +76,7 @@ class ContainerSwitch(SwitchDevice):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return "Docker {}".format(self._name)
+        return "{} {}".format(self._clientname, self._container_name)
 
     @property
     def should_poll(self):

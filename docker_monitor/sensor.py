@@ -11,6 +11,7 @@ import homeassistant.util.dt as dt_util
 from homeassistant.const import (
     ATTR_ATTRIBUTION,
     CONF_MONITORED_CONDITIONS,
+    CONF_NAME,
     CONF_SCAN_INTERVAL,
     EVENT_HOMEASSISTANT_STOP
 )
@@ -38,6 +39,7 @@ from custom_components.docker_monitor import (
     UTILISATION_MONITOR_VERSION
 )
 
+VERSION = '0.0.1'
 
 DEPENDENCIES = ['docker_monitor']
 
@@ -58,15 +60,16 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
     api = hass.data[DOCKER_HANDLE][DATA_DOCKER_API]
     config = hass.data[DOCKER_HANDLE][DATA_CONFIG]
+    clientname = config[CONF_NAME]
     interval = config[CONF_SCAN_INTERVAL].total_seconds()
 
-    sensors = [DockerUtilSensor(api, variable, interval)
+    sensors = [DockerUtilSensor(api, clientname, variable, interval)
                for variable in config[CONF_MONITORED_CONDITIONS] if variable in _UTILISATION_MON_COND]
 
     containers = [container.get_name() for container in api.get_containers()]
     for name in config[CONF_CONTAINERS]:
         if name in containers:
-            sensors += [DockerContainerSensor(api, name, variable, interval)
+            sensors += [DockerContainerSensor(api, clientname, name, variable, interval)
                         for variable in config[CONF_MONITORED_CONDITIONS] if variable in _CONTAINER_MON_COND]
 
     if sensors:
@@ -79,9 +82,10 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 class DockerUtilSensor(Entity):
     """Representation of a Docker Sensor."""
 
-    def __init__(self, api, variable, interval):
+    def __init__(self, api, clientname, variable, interval):
         """Initialize the sensor."""
         self._api = api
+        self._clientname = clientname
         self._interval = interval  # TODO implement
 
         self._var_id = variable
@@ -101,7 +105,7 @@ class DockerUtilSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return "Docker {}".format(self._var_name)
+        return "{} {}".format(self._clientname, self._var_name)
 
     @property
     def icon(self):
@@ -142,10 +146,11 @@ class DockerUtilSensor(Entity):
 class DockerContainerSensor(Entity):
     """Representation of a Docker Sensor."""
 
-    def __init__(self, api, name, variable, interval):
+    def __init__(self, api, clientname, container_name, variable, interval):
         """Initialize the sensor."""
         self._api = api
-        self._name = name
+        self._clientname = clientname
+        self._container_name = container_name
         self._interval = interval
 
         self._var_id = variable
@@ -159,10 +164,10 @@ class DockerContainerSensor(Entity):
             ATTR_ATTRIBUTION: CONF_ATTRIBUTION
         }
 
-        self._container = api.get_container(name)
+        self._container = api.get_container(container_name)
 
         _LOGGER.info("Initializing Docker sensor \"{}\" with parameter: {}".format(
-            self._name, self._var_name))
+            self._container_name, self._var_name))
 
         def update_callback(stats):
             state = None
@@ -230,7 +235,7 @@ class DockerContainerSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor, if any."""
-        return "Docker {} {}".format(self._name, self._var_name)
+        return "{} {} {}".format(self._clientname, self._container_name, self._var_name)
 
     @property
     def icon(self):
