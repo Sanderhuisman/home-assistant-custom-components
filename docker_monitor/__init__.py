@@ -17,11 +17,55 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_SCAN_INTERVAL,
     CONF_URL,
-    EVENT_HOMEASSISTANT_STOP
+    EVENT_HOMEASSISTANT_STOP,
 )
 from homeassistant.core import callback
 from homeassistant.helpers.discovery import load_platform
 from homeassistant.util import slugify as util_slugify
+
+from custom_components.docker_monitor.const import (
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    CONF_ATTRIBUTION,
+    PLATFORMS,
+    DOCKER_HANDLE,
+    DATA_DOCKER_API,
+    DATA_CONFIG,
+    DEFAULT_URL,
+    DEFAULT_NAME,
+    CONF_EVENTS,
+    CONF_CONTAINERS,
+    CONF_MONITOR_UTILISATION_VERSION,
+    CONF_MONITOR_CONTAINER_STATUS,
+    CONF_MONITOR_CONTAINER_UPTIME,
+    CONF_MONITOR_CONTAINER_IMAGE,
+    CONF_MONITOR_CONTAINER_CPU_PERCENTAGE,
+    CONF_MONITOR_CONTAINER_MEMORY_USAGE,
+    CONF_MONITOR_CONTAINER_MEMORY_PERCENTAGE,
+    CONF_MONITOR_CONTAINER_NETWORK_SPEED_UP,
+    CONF_MONITOR_CONTAINER_NETWORK_SPEED_DOWN,
+    CONF_MONITOR_CONTAINER_NETWORK_TOTAL_UP,
+    CONF_MONITOR_CONTAINER_NETWORK_TOTAL_DOWN,
+    CONF_MONITOR_UTILISATION_CONDITIONS,
+    CONF_MONITOR_CONTAINER_CONDITIONS,
+    EVENT_CONTAINER,
+    PRECISION,
+    CONTAINER_INFO,
+    CONTAINER_INFO_ID,
+    CONTAINER_INFO_IMAGE,
+    CONTAINER_INFO_STATUS,
+    CONTAINER_INFO_CREATED,
+    CONTAINER_INFO_STARTED,
+    VERSION_INFO_VERSION,
+    VERSION_INFO_API_VERSION,
+    VERSION_INFO_OS,
+    VERSION_INFO_ARCHITECTURE,
+    VERSION_INFO_KERNEL,
+    EVENT_INFO_CONTAINER,
+    EVENT_INFO_IMAGE,
+    EVENT_INFO_STATUS,
+    EVENT_INFO_ID,
+)
 
 VERSION = '0.0.2'
 
@@ -29,64 +73,9 @@ REQUIREMENTS = ['docker==3.7.0', 'python-dateutil==2.7.5']
 
 _LOGGER = logging.getLogger(__name__)
 
-DOMAIN = 'docker_monitor'
-
-CONF_ATTRIBUTION = 'Data provided by Docker'
-
-DOCKER_HANDLE = 'docker_handle'
-DATA_DOCKER_API = 'api'
-DATA_CONFIG = 'config'
-
-EVENT_CONTAINER = 'container_event'
-
-PRECISION = 2
-
-DEFAULT_URL = 'unix://var/run/docker.sock'
-DEFAULT_NAME = 'Docker'
-
-DEFAULT_SCAN_INTERVAL = timedelta(seconds=10)
-
-DOCKER_TYPE = [
-    'sensor',
-    'switch'
-]
-
-CONF_EVENTS = 'events'
-CONF_CONTAINERS = 'containers'
-
-UTILISATION_MONITOR_VERSION = 'utilization_version'
-
-CONTAINER_MONITOR_STATUS = 'container_status'
-CONTAINER_MONITOR_UPTIME = 'container_uptime'
-CONTAINER_MONITOR_IMAGE = 'container_image'
-CONTAINER_MONITOR_CPU_PERCENTAGE = 'container_cpu_percentage_usage'
-CONTAINER_MONITOR_MEMORY_USAGE = 'container_memory_usage'
-CONTAINER_MONITOR_MEMORY_PERCENTAGE = 'container_memory_percentage_usage'
-CONTAINER_MONITOR_NETWORK_SPEED_UP = 'container_network_speed_up'
-CONTAINER_MONITOR_NETWORK_SPEED_DOWN = 'container_network_speed_down'
-CONTAINER_MONITOR_NETWORK_TOTAL_UP = 'container_network_total_up'
-CONTAINER_MONITOR_NETWORK_TOTAL_DOWN = 'container_network_total_down'
-
-_UTILISATION_MON_COND = {
-    UTILISATION_MONITOR_VERSION: ['Version', None, 'mdi:information-outline', None],
-}
-
-_CONTAINER_MON_COND = {
-    CONTAINER_MONITOR_STATUS: ['Status', None, 'mdi:checkbox-marked-circle-outline', None],
-    CONTAINER_MONITOR_UPTIME: ['Up Time', '', 'mdi:clock', 'timestamp'],
-    CONTAINER_MONITOR_IMAGE: ['Image', None, 'mdi:information-outline', None],
-    CONTAINER_MONITOR_CPU_PERCENTAGE: ['CPU use', '%', 'mdi:chip', None],
-    CONTAINER_MONITOR_MEMORY_USAGE: ['Memory use', 'MB', 'mdi:memory', None],
-    CONTAINER_MONITOR_MEMORY_PERCENTAGE: ['Memory use (percent)', '%', 'mdi:memory', None],
-    CONTAINER_MONITOR_NETWORK_SPEED_UP: ['Network speed Up', 'kB/s', 'mdi:upload', None],
-    CONTAINER_MONITOR_NETWORK_SPEED_DOWN: ['Network speed Down', 'kB/s', 'mdi:download', None],
-    CONTAINER_MONITOR_NETWORK_TOTAL_UP: ['Network total Up', 'MB', 'mdi:upload', None],
-    CONTAINER_MONITOR_NETWORK_TOTAL_DOWN: ['Network total Down', 'MB', 'mdi:download', None],
-}
-
-_MONITORED_CONDITIONS = \
-    list(_UTILISATION_MON_COND.keys()) + \
-    list(_CONTAINER_MON_COND.keys())
+MONITORED_CONDITIONS = \
+    list(CONF_MONITOR_UTILISATION_CONDITIONS.keys()) + \
+    list(CONF_MONITOR_CONTAINER_CONDITIONS.keys())
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
@@ -98,8 +87,8 @@ CONFIG_SCHEMA = vol.Schema({
             cv.time_period,
         vol.Optional(CONF_EVENTS, default=False):
             cv.boolean,
-        vol.Optional(CONF_MONITORED_CONDITIONS, default=_MONITORED_CONDITIONS):
-            vol.All(cv.ensure_list, [vol.In(_MONITORED_CONDITIONS)]),
+        vol.Optional(CONF_MONITORED_CONDITIONS, default=MONITORED_CONDITIONS):
+            vol.All(cv.ensure_list, [vol.In(MONITORED_CONDITIONS)]),
         vol.Optional(CONF_CONTAINERS):
             cv.ensure_list,
     })
@@ -119,7 +108,7 @@ def setup(hass, config):
     else:
         version = api.get_info()
         _LOGGER.debug("Docker version: {}".format(
-            version.get('version', None)))
+            version.get(VERSION_INFO_VERSION, None)))
 
         hass.data[DOCKER_HANDLE] = {}
         hass.data[DOCKER_HANDLE][DATA_DOCKER_API] = api
@@ -130,7 +119,7 @@ def setup(hass, config):
             CONF_SCAN_INTERVAL: config[DOMAIN].get(CONF_SCAN_INTERVAL),
         }
 
-        for component in DOCKER_TYPE:
+        for component in PLATFORMS:
             load_platform(hass, component, DOMAIN, {}, config)
 
         def monitor_stop(_service_or_event):
@@ -198,11 +187,11 @@ class DockerAPI:
         try:
             raw_stats = self._client.version()
             version = {
-                'version': raw_stats.get('Version', None),
-                'api_version': raw_stats.get('ApiVersion', None),
-                'os': raw_stats.get('Os', None),
-                'arch': raw_stats.get('Arch', None),
-                'kernel': raw_stats.get('KernelVersion', None),
+                VERSION_INFO_VERSION: raw_stats.get('Version', None),
+                VERSION_INFO_API_VERSION: raw_stats.get('ApiVersion', None),
+                VERSION_INFO_OS: raw_stats.get('Os', None),
+                VERSION_INFO_ARCHITECTURE: raw_stats.get('Arch', None),
+                VERSION_INFO_KERNEL: raw_stats.get('KernelVersion', None),
             }
         except Exception as e:
             _LOGGER.error("Cannot get Docker version ({})".format(e))
@@ -217,10 +206,10 @@ class DockerAPI:
                 # Only interested in container events
                 if event['Type'] == 'container':
                     message = {
-                        'Container': event['Actor']['Attributes'].get('name'),
-                        'Image': event['from'],
-                        'Status': event['status'],
-                        'Id': event['id'],
+                        EVENT_INFO_CONTAINER: event['Actor']['Attributes'].get('name'),
+                        EVENT_INFO_IMAGE: event['from'],
+                        EVENT_INFO_STATUS: event['status'],
+                        EVENT_INFO_ID: event['id'],
                     }
                     _LOGGER.info("Container event: ({})".format(message))
 
@@ -278,11 +267,11 @@ class DockerContainerAPI:
 
         self._container.reload()
         info = {
-            'id': self._container.id,
-            'image': self._container.image.tags,
-            'status': self._container.attrs['State']['Status'],
-            'created': parser.parse(self._container.attrs['Created']),
-            'started': parser.parse(self._container.attrs['State']['StartedAt']),
+            CONTAINER_INFO_ID: self._container.id,
+            CONTAINER_INFO_IMAGE: self._container.image.tags,
+            CONTAINER_INFO_STATUS: self._container.attrs['State']['Status'],
+            CONTAINER_INFO_CREATED: parser.parse(self._container.attrs['Created']),
+            CONTAINER_INFO_STARTED: parser.parse(self._container.attrs['State']['StartedAt']),
         }
 
         return info
@@ -313,8 +302,8 @@ class DockerContainerAPI:
 
             stats = {}
 
-            stats['info'] = self.get_info()
-            if stats['info']['status'] in ('running', 'paused'):
+            stats[CONTAINER_INFO] = self.get_info()
+            if stats[CONTAINER_INFO][CONTAINER_INFO_STATUS] in ('running', 'paused'):
                 stats['read'] = parser.parse(raw['read'])
 
                 cpu_stats = {}

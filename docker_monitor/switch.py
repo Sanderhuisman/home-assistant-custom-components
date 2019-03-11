@@ -17,12 +17,15 @@ from homeassistant.const import (
 )
 from homeassistant.core import ServiceCall
 
-from custom_components.docker_monitor import (
+from custom_components.docker_monitor.const import (
     CONF_ATTRIBUTION,
     CONF_CONTAINERS,
+    CONTAINER_INFO,
+    CONTAINER_INFO_STATUS,
     DATA_CONFIG,
     DATA_DOCKER_API,
-    DOCKER_HANDLE
+    DOCKER_HANDLE,
+    ICON_SWITCH
 )
 
 VERSION = '0.0.2'
@@ -61,7 +64,7 @@ class ContainerSwitch(SwitchDevice):
         def update_callback(stats):
             _LOGGER.debug("Received callback with message: {}".format(stats))
 
-            if stats['info']['status'] == 'running':
+            if stats[CONTAINER_INFO][CONTAINER_INFO_STATUS] == 'running':
                 state = True
             else:
                 state = False
@@ -84,7 +87,7 @@ class ContainerSwitch(SwitchDevice):
 
     @property
     def icon(self):
-        return 'mdi:docker'
+        return ICON_SWITCH
 
     @property
     def device_state_attributes(self):

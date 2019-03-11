@@ -17,26 +17,44 @@ from homeassistant.const import (
 )
 from homeassistant.helpers.entity import Entity
 
-from custom_components.docker_monitor import (
-    _CONTAINER_MON_COND,
-    _UTILISATION_MON_COND,
+from custom_components.docker_monitor.const import (
+    ATTR_CREATED,
+    ATTR_IMAGE,
+    ATTR_MEMORY_LIMIT,
+    ATTR_ONLINE_CPUS,
+    ATTR_STARTED_AT,
+    ATTR_VERSION_API,
+    ATTR_VERSION_ARCH,
+    ATTR_VERSION_OS,
     CONF_ATTRIBUTION,
     CONF_CONTAINERS,
-    CONTAINER_MONITOR_CPU_PERCENTAGE,
-    CONTAINER_MONITOR_IMAGE,
-    CONTAINER_MONITOR_MEMORY_PERCENTAGE,
-    CONTAINER_MONITOR_MEMORY_USAGE,
-    CONTAINER_MONITOR_NETWORK_SPEED_DOWN,
-    CONTAINER_MONITOR_NETWORK_TOTAL_DOWN,
-    CONTAINER_MONITOR_NETWORK_SPEED_UP,
-    CONTAINER_MONITOR_NETWORK_TOTAL_UP,
-    CONTAINER_MONITOR_STATUS,
-    CONTAINER_MONITOR_UPTIME,
+    CONF_MONITOR_CONTAINER_CONDITIONS,
+    CONF_MONITOR_CONTAINER_CPU_PERCENTAGE,
+    CONF_MONITOR_CONTAINER_IMAGE,
+    CONF_MONITOR_CONTAINER_MEMORY_PERCENTAGE,
+    CONF_MONITOR_CONTAINER_MEMORY_USAGE,
+    CONF_MONITOR_CONTAINER_NETWORK_SPEED_DOWN,
+    CONF_MONITOR_CONTAINER_NETWORK_SPEED_UP,
+    CONF_MONITOR_CONTAINER_NETWORK_TOTAL_DOWN,
+    CONF_MONITOR_CONTAINER_NETWORK_TOTAL_UP,
+    CONF_MONITOR_CONTAINER_STATUS,
+    CONF_MONITOR_CONTAINER_UPTIME,
+    CONF_MONITOR_UTILISATION_CONDITIONS,
+    CONF_MONITOR_UTILISATION_VERSION,
+    CONTAINER_INFO,
+    CONTAINER_INFO_CREATED,
+    CONTAINER_INFO_ID,
+    CONTAINER_INFO_IMAGE,
+    CONTAINER_INFO_STARTED,
+    CONTAINER_INFO_STATUS,
     DATA_CONFIG,
     DATA_DOCKER_API,
-    DOCKER_HANDLE,
-    PRECISION,
-    UTILISATION_MONITOR_VERSION
+    DOCKER_HANDLE, PRECISION,
+    VERSION_INFO_API_VERSION,
+    VERSION_INFO_ARCHITECTURE,
+    VERSION_INFO_KERNEL,
+    VERSION_INFO_OS,
+    VERSION_INFO_VERSION
 )
 
 VERSION = '0.0.2'
@@ -44,15 +62,6 @@ VERSION = '0.0.2'
 DEPENDENCIES = ['docker_monitor']
 
 _LOGGER = logging.getLogger(__name__)
-
-ATTR_CREATED = 'Created'
-ATTR_IMAGE = 'Image'
-ATTR_MEMORY_LIMIT = 'Memory_limit'
-ATTR_ONLINE_CPUS = 'Online_CPUs'
-ATTR_STARTED_AT = 'Started_at'
-ATTR_VERSION_API = 'Api_version'
-ATTR_VERSION_ARCH = 'Architecture'
-ATTR_VERSION_OS = 'Os'
 
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
@@ -64,13 +73,13 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
     interval = config[CONF_SCAN_INTERVAL].total_seconds()
 
     sensors = [DockerUtilSensor(api, clientname, variable, interval)
-               for variable in config[CONF_MONITORED_CONDITIONS] if variable in _UTILISATION_MON_COND]
+               for variable in config[CONF_MONITORED_CONDITIONS] if variable in CONF_MONITOR_UTILISATION_CONDITIONS]
 
     containers = [container.get_name() for container in api.get_containers()]
     for name in config[CONF_CONTAINERS]:
         if name in containers:
             sensors += [DockerContainerSensor(api, clientname, name, variable, interval)
-                        for variable in config[CONF_MONITORED_CONDITIONS] if variable in _CONTAINER_MON_COND]
+                        for variable in config[CONF_MONITORED_CONDITIONS] if variable in CONF_MONITOR_CONTAINER_CONDITIONS]
 
     if sensors:
         add_entities(sensors, True)
@@ -89,10 +98,10 @@ class DockerUtilSensor(Entity):
         self._interval = interval  # TODO implement
 
         self._var_id = variable
-        self._var_name = _UTILISATION_MON_COND[variable][0]
-        self._var_unit = _UTILISATION_MON_COND[variable][1]
-        self._var_icon = _UTILISATION_MON_COND[variable][2]
-        self._var_class = _UTILISATION_MON_COND[variable][3]
+        self._var_name = CONF_MONITOR_UTILISATION_CONDITIONS[variable][0]
+        self._var_unit = CONF_MONITOR_UTILISATION_CONDITIONS[variable][1]
+        self._var_icon = CONF_MONITOR_UTILISATION_CONDITIONS[variable][2]
+        self._var_class = CONF_MONITOR_UTILISATION_CONDITIONS[variable][3]
 
         self._state = None
         self._attributes = {
@@ -129,13 +138,16 @@ class DockerUtilSensor(Entity):
 
     def update(self):
         """Get the latest data for the states."""
-        if self._var_id == UTILISATION_MONITOR_VERSION:
+        if self._var_id == CONF_MONITOR_UTILISATION_VERSION:
             version = self._api.get_info()
-            self._state = version.get('version', None)
+            self._state = version.get(
+                VERSION_INFO_VERSION, None)
             self._attributes[ATTR_VERSION_API] = version.get(
-                'api_version', None)
-            self._attributes[ATTR_VERSION_OS] = version.get('os', None)
-            self._attributes[ATTR_VERSION_ARCH] = version.get('arch', None)
+                VERSION_INFO_API_VERSION, None)
+            self._attributes[ATTR_VERSION_OS] = version.get(
+                VERSION_INFO_OS, None)
+            self._attributes[ATTR_VERSION_ARCH] = version.get(
+                VERSION_INFO_ARCHITECTURE, None)
 
     @property
     def device_state_attributes(self):
@@ -154,10 +166,10 @@ class DockerContainerSensor(Entity):
         self._interval = interval
 
         self._var_id = variable
-        self._var_name = _CONTAINER_MON_COND[variable][0]
-        self._var_unit = _CONTAINER_MON_COND[variable][1]
-        self._var_icon = _CONTAINER_MON_COND[variable][2]
-        self._var_class = _CONTAINER_MON_COND[variable][3]
+        self._var_name = CONF_MONITOR_CONTAINER_CONDITIONS[variable][0]
+        self._var_unit = CONF_MONITOR_CONTAINER_CONDITIONS[variable][1]
+        self._var_icon = CONF_MONITOR_CONTAINER_CONDITIONS[variable][2]
+        self._var_class = CONF_MONITOR_CONTAINER_CONDITIONS[variable][3]
 
         self._state = None
         self._attributes = {
@@ -172,39 +184,41 @@ class DockerContainerSensor(Entity):
         def update_callback(stats):
             state = None
             # Info
-            if self._var_id == CONTAINER_MONITOR_STATUS:
-                state = stats['info']['status']
-            elif self._var_id == CONTAINER_MONITOR_UPTIME:
-                up_time = stats.get('info', {}).get('started')
+            if self._var_id == CONF_MONITOR_CONTAINER_STATUS:
+                state = stats[CONTAINER_INFO][CONTAINER_INFO_STATUS]
+            elif self._var_id == CONF_MONITOR_CONTAINER_UPTIME:
+                up_time = stats.get(CONTAINER_INFO, {}).get(
+                    CONTAINER_INFO_STARTED)
                 if up_time is not None:
                     state = dt_util.as_local(up_time).isoformat()
-            elif self._var_id == CONTAINER_MONITOR_IMAGE:
-                state = stats['info']['image'][0]  # get first from array
+            elif self._var_id == CONF_MONITOR_CONTAINER_IMAGE:
+                # get first from array
+                state = stats[CONTAINER_INFO][CONTAINER_INFO_IMAGE][0]
             # cpu
-            elif self._var_id == CONTAINER_MONITOR_CPU_PERCENTAGE:
+            elif self._var_id == CONF_MONITOR_CONTAINER_CPU_PERCENTAGE:
                 state = stats.get('cpu', {}).get('total')
             # memory
-            elif self._var_id == CONTAINER_MONITOR_MEMORY_USAGE:
+            elif self._var_id == CONF_MONITOR_CONTAINER_MEMORY_USAGE:
                 use = stats.get('memory', {}).get('usage')
                 if use is not None:
                     state = round(use / (1024 ** 2), PRECISION)  # Bytes to MB
-            elif self._var_id == CONTAINER_MONITOR_MEMORY_PERCENTAGE:
+            elif self._var_id == CONF_MONITOR_CONTAINER_MEMORY_PERCENTAGE:
                 state = stats.get('memory', {}).get('usage_percent')
             # network
-            elif self._var_id == CONTAINER_MONITOR_NETWORK_SPEED_UP:
+            elif self._var_id == CONF_MONITOR_CONTAINER_NETWORK_SPEED_UP:
                 up = stats.get('network', {}).get('speed_tx')
                 state = None
                 if up is not None:
                     state = round(up / (1024), PRECISION)  # Bytes to kB
-            elif self._var_id == CONTAINER_MONITOR_NETWORK_SPEED_DOWN:
+            elif self._var_id == CONF_MONITOR_CONTAINER_NETWORK_SPEED_DOWN:
                 down = stats.get('network', {}).get('speed_rx')
                 if down is not None:
                     state = round(down / (1024), PRECISION)
-            elif self._var_id == CONTAINER_MONITOR_NETWORK_TOTAL_UP:
+            elif self._var_id == CONF_MONITOR_CONTAINER_NETWORK_TOTAL_UP:
                 up = stats.get('network', {}).get('total_tx') # Bytes to kB
                 if up is not None:
                     state = round(up / (1024 ** 2), PRECISION)
-            elif self._var_id == CONTAINER_MONITOR_NETWORK_TOTAL_DOWN:
+            elif self._var_id == CONF_MONITOR_CONTAINER_NETWORK_TOTAL_DOWN:
                 down = stats.get('network', {}).get('total_rx')
                 if down is not None:
                     state = round(down / (1024 ** 2), PRECISION)
@@ -212,17 +226,17 @@ class DockerContainerSensor(Entity):
             self._state = state
 
             # Attributes
-            if self._var_id in (CONTAINER_MONITOR_STATUS):
-                self._attributes[ATTR_IMAGE] = state = stats['info']['image'][0]
+            if self._var_id in (CONF_MONITOR_CONTAINER_STATUS):
+                self._attributes[ATTR_IMAGE] = state = stats[CONTAINER_INFO][CONTAINER_INFO_IMAGE][0]
                 self._attributes[ATTR_CREATED] = dt_util.as_local(
-                    stats['info']['created']).isoformat()
+                    stats[CONTAINER_INFO][CONTAINER_INFO_CREATED]).isoformat()
                 self._attributes[ATTR_STARTED_AT] = dt_util.as_local(
-                    stats['info']['started']).isoformat()
-            elif self._var_id in (CONTAINER_MONITOR_CPU_PERCENTAGE):
+                    stats[CONTAINER_INFO][CONTAINER_INFO_STARTED]).isoformat()
+            elif self._var_id in (CONF_MONITOR_CONTAINER_CPU_PERCENTAGE):
                 cpus = stats.get('cpu', {}).get('online_cpus')
                 if cpus is not None:
                     self._attributes[ATTR_ONLINE_CPUS] = cpus
-            elif self._var_id in (CONTAINER_MONITOR_MEMORY_USAGE, CONTAINER_MONITOR_MEMORY_PERCENTAGE):
+            elif self._var_id in (CONF_MONITOR_CONTAINER_MEMORY_USAGE, CONF_MONITOR_CONTAINER_MEMORY_PERCENTAGE):
                 limit = stats.get('memory', {}).get('limit')
                 if limit is not None:
                     self._attributes[ATTR_MEMORY_LIMIT] = str(
@@ -240,7 +254,7 @@ class DockerContainerSensor(Entity):
     @property
     def icon(self):
         """Icon to use in the frontend, if any."""
-        if self._var_id == CONTAINER_MONITOR_STATUS:
+        if self._var_id == CONF_MONITOR_CONTAINER_STATUS:
             if self._state == 'running':
                 return 'mdi:checkbox-marked-circle-outline'
             else:
