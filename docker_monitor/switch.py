@@ -48,7 +48,8 @@ async def async_setup_platform(
     switches = [ContainerSwitch(api, clientname, name)
                 for name in config[CONF_CONTAINERS] if name in containers]
     if switches:
-        async_add_entities(switches, True)
+        async_add_entities(switches, False)
+        return True
     else:
         _LOGGER.info("No containers setup")
         return False

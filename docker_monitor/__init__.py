@@ -125,7 +125,6 @@ async def async_setup(hass, config):
                     hass, platform, DOMAIN, {}, config
                 )
             )
-            # load_platform(hass, platform, DOMAIN, {}, config)
 
         def monitor_stop(_service_or_event):
             """Stop the monitor thread."""
