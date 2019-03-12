@@ -17,7 +17,7 @@ from homeassistant.const import (
 )
 from homeassistant.helpers.entity import Entity
 
-from custom_components.docker_monitor.const import (
+from .const import (
     ATTR_CREATED,
     ATTR_IMAGE,
     ATTR_MEMORY_LIMIT,
@@ -64,7 +64,9 @@ DEPENDENCIES = ['docker_monitor']
 _LOGGER = logging.getLogger(__name__)
 
 
-def setup_platform(hass, config, add_entities, discovery_info=None):
+async def async_setup_platform(
+    hass, config, async_add_entities, discovery_info=None
+):  # pylint: disable=unused-argument
     """Set up the Docker Monitor Sensor."""
 
     api = hass.data[DOCKER_HANDLE][DATA_DOCKER_API]
@@ -82,7 +84,7 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
                         for variable in config[CONF_MONITORED_CONDITIONS] if variable in CONF_MONITOR_CONTAINER_CONDITIONS]
 
     if sensors:
-        add_entities(sensors, True)
+        async_add_entities(sensors, True)
     else:
         _LOGGER.info("No containers setup")
         return False
@@ -136,18 +138,19 @@ class DockerUtilSensor(Entity):
         """Return the unit the value is expressed in."""
         return self._var_unit
 
-    def update(self):
-        """Get the latest data for the states."""
-        if self._var_id == CONF_MONITOR_UTILISATION_VERSION:
-            version = self._api.get_info()
-            self._state = version.get(
-                VERSION_INFO_VERSION, None)
-            self._attributes[ATTR_VERSION_API] = version.get(
-                VERSION_INFO_API_VERSION, None)
-            self._attributes[ATTR_VERSION_OS] = version.get(
-                VERSION_INFO_OS, None)
-            self._attributes[ATTR_VERSION_ARCH] = version.get(
-                VERSION_INFO_ARCHITECTURE, None)
+    # async def async_update(self):
+    # # def update(self):
+    #     """Get the latest data for the states."""
+    #     if self._var_id == CONF_MONITOR_UTILISATION_VERSION:
+    #         version = self._api.get_info()
+    #         self._state = version.get(
+    #             VERSION_INFO_VERSION, None)
+    #         self._attributes[ATTR_VERSION_API] = version.get(
+    #             VERSION_INFO_API_VERSION, None)
+    #         self._attributes[ATTR_VERSION_OS] = version.get(
+    #             VERSION_INFO_OS, None)
+    #         self._attributes[ATTR_VERSION_ARCH] = version.get(
+    #             VERSION_INFO_ARCHITECTURE, None)
 
     @property
     def device_state_attributes(self):
@@ -245,6 +248,8 @@ class DockerContainerSensor(Entity):
             self.schedule_update_ha_state()
 
         self._container.stats(update_callback, self._interval)
+
+    # async def async_update(self):
 
     @property
     def name(self):

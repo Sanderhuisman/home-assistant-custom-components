@@ -20,10 +20,10 @@ from homeassistant.const import (
     EVENT_HOMEASSISTANT_STOP,
 )
 from homeassistant.core import callback
-from homeassistant.helpers.discovery import load_platform
+from homeassistant.helpers import discovery
 from homeassistant.util import slugify as util_slugify
 
-from custom_components.docker_monitor.const import (
+from .const import (
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     CONF_ATTRIBUTION,
@@ -95,7 +95,7 @@ CONFIG_SCHEMA = vol.Schema({
 }, extra=vol.ALLOW_EXTRA)
 
 
-def setup(hass, config):
+async def async_setup(hass, config):
     _LOGGER.info("Settings: {}".format(config[DOMAIN]))
 
     host = config[DOMAIN].get(CONF_URL)
@@ -119,8 +119,13 @@ def setup(hass, config):
             CONF_SCAN_INTERVAL: config[DOMAIN].get(CONF_SCAN_INTERVAL),
         }
 
-        for component in PLATFORMS:
-            load_platform(hass, component, DOMAIN, {}, config)
+        for platform in PLATFORMS:
+            hass.async_create_task(
+                discovery.async_load_platform(
+                    hass, platform, DOMAIN, {}, config
+                )
+            )
+            # load_platform(hass, platform, DOMAIN, {}, config)
 
         def monitor_stop(_service_or_event):
             """Stop the monitor thread."""

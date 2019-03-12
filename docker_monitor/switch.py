@@ -17,7 +17,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import ServiceCall
 
-from custom_components.docker_monitor.const import (
+from .const import (
     CONF_ATTRIBUTION,
     CONF_CONTAINERS,
     CONTAINER_INFO,
@@ -35,7 +35,9 @@ DEPENDENCIES = ['docker_monitor']
 _LOGGER = logging.getLogger(__name__)
 
 
-def setup_platform(hass, config, add_devices_callback, discovery_info=None):
+async def async_setup_platform(
+    hass, config, async_add_entities, discovery_info=None
+):  # pylint: disable=unused-argument
     """Set up the Docker Monitor Switch."""
 
     api = hass.data[DOCKER_HANDLE][DATA_DOCKER_API]
@@ -46,7 +48,7 @@ def setup_platform(hass, config, add_devices_callback, discovery_info=None):
     switches = [ContainerSwitch(api, clientname, name)
                 for name in config[CONF_CONTAINERS] if name in containers]
     if switches:
-        add_devices_callback(switches, True)
+        async_add_entities(switches, True)
     else:
         _LOGGER.info("No containers setup")
         return False
@@ -76,6 +78,9 @@ class ContainerSwitch(SwitchDevice):
 
         self._container.stats(update_callback)
 
+    async def async_update(self):
+        pass
+
     @property
     def name(self):
         """Return the name of the sensor."""
@@ -83,7 +88,7 @@ class ContainerSwitch(SwitchDevice):
 
     @property
     def should_poll(self):
-        return True
+        return False
 
     @property
     def icon(self):
@@ -99,8 +104,9 @@ class ContainerSwitch(SwitchDevice):
     def is_on(self):
         return self._state
 
-    def turn_on(self, **kwargs):
+    async def async_turn_on(self, **kwargs):  # pylint: disable=unused-argument
+        """Turn on the switch."""
         self._container.start()
 
-    def turn_off(self, **kwargs):
+    async def async_turn_off(self, **kwargs):  # pylint: disable=unused-argument
         self._container.stop()

@@ -3,7 +3,7 @@ from datetime import timedelta
 
 DOMAIN = 'docker_monitor'
 PLATFORMS = [
-    'sensor',
+    # 'sensor',
     'switch'
 ]
 EVENT_CONTAINER = 'container_event'
