@@ -29,7 +29,9 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     EVENT_CONTAINER,
-    PLATFORMS
+    PLATFORMS,
+    SERVICE_EXEC,
+    SERVICE_RUN
 )
 from .helpers import DockerMonitorApi
 
@@ -75,7 +77,6 @@ CONFIG_SCHEMA = vol.Schema({
     }),
 }, extra=vol.ALLOW_EXTRA)
 
-
 def setup(hass, config):
     _LOGGER.debug("Settings: {}".format(config[DOMAIN]))
 
@@ -104,6 +105,33 @@ def setup(hass, config):
                 load_platform(hass, component, DOMAIN, host, config)
 
             api.start()
+
+    async def async_service_handler(service):
+        """Handle service calls."""
+        name = service.data[CONF_NAME]
+        if service.service == SERVICE_EXEC:
+            _LOGGER.error("Exec on host {}".format(name))
+        elif service.service == SERVICE_RUN:
+            _LOGGER.error("Run on host {}".format(name))
+        else:
+            _LOGGER.error("Service {} not found".format(service.service))
+
+    SERVICE_SCHEMA = vol.Schema({
+        vol.Required(CONF_NAME):
+            vol.All(cv.string, vol.In([host[CONF_NAME] for host in config[DOMAIN][CONF_HOSTS]]))
+    })
+
+    service_exec_schema = SERVICE_SCHEMA.extend({
+        vol.Required('command'):
+            cv.string,
+    })
+    service_runschema = SERVICE_SCHEMA.extend({
+        vol.Required('command'):
+            cv.string,
+    })
+
+    hass.services.async_register(DOMAIN, SERVICE_EXEC, async_service_handler, schema=service_exec_schema)
+    hass.services.async_register(DOMAIN, SERVICE_RUN, async_service_handler, schema=service_runschema)
 
     def monitor_stop(_service_or_event):
         """Stop the monitor threads."""

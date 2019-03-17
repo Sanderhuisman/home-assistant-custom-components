@@ -1,0 +1,19 @@
+exec:
+  description: Send the alarm the command for arm night.
+  fields:
+    name:
+      description: Name of docker host.
+      # example: 'alarm_control_panel.downstairs'
+    command:
+      description: Command to execute.
+      example: 1234
+
+run:
+  description: Send the alarm the command for arm night.
+  fields:
+    name:
+      description: Name of docker host.
+      # example: 'alarm_control_panel.downstairs'
+    command:
+      description: Command to execute.
+      example: 1234
