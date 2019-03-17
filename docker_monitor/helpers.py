@@ -62,6 +62,7 @@ class DockerMonitorApi:
             self._event_listener.shutdown()
         if self._stats_listener.isAlive():
             self._stats_listener.shutdown()
+        self._client.close()
 
     def get_info(self):
         version = {}

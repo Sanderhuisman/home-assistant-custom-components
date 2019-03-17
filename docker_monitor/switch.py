@@ -21,6 +21,7 @@ from homeassistant.util import slugify as util_slugify
 from .const import (
     CONF_ATTRIBUTION,
     CONF_CONTAINERS,
+    CONF_CONTAINER_SWITCH,
     CONTAINER_INFO,
     CONTAINER_INFO_STATUS,
     DOMAIN,
@@ -48,7 +49,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     containers = api.get_containers()
     switches = [ContainerSwitch(host_name, containers[name])
-                for name in discovery_info[CONF_CONTAINERS].keys() if name in containers]
+                for name in discovery_info[CONF_CONTAINERS].keys() if name in containers and discovery_info[CONF_CONTAINERS][name][CONF_CONTAINER_SWITCH]]
+
 
     if switches:
         async_add_entities(switches)
