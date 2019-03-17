@@ -11,8 +11,8 @@ EVENT_CONTAINER = 'container_event'
 
 DEFAULT_SCAN_INTERVAL = timedelta(seconds=10)
 
-CONF_EVENTS = 'events'
 CONF_CONTAINERS = 'containers'
+CONF_CONTAINER_SWITCH = 'switch'
 
 CONF_MONITOR_UTILISATION_VERSION = 'version'
 
