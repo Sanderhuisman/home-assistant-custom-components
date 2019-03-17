@@ -11,12 +11,14 @@ import time
 from homeassistant.helpers import config_validation as cv
 import voluptuous as vol
 from homeassistant.const import (
+    CONF_HOSTS,
     ATTR_ATTRIBUTION,
     CONF_MONITORED_CONDITIONS,
     CONF_NAME,
     CONF_SCAN_INTERVAL,
     CONF_URL,
     EVENT_HOMEASSISTANT_STOP,
+    CONF_SENSORS,
 )
 from homeassistant.helpers.discovery import load_platform
 from homeassistant.util import slugify as util_slugify
@@ -71,74 +73,80 @@ REQUIREMENTS = ['docker==3.7.0', 'python-dateutil==2.7.5']
 
 _LOGGER = logging.getLogger(__name__)
 
-MONITORED_CONDITIONS = \
-    list(CONF_MONITOR_UTILISATION_CONDITIONS.keys()) + \
-    list(CONF_MONITOR_CONTAINER_CONDITIONS.keys())
+CONF_MONITOR_UTILISATION_CONDITIONS_KEYS = list(CONF_MONITOR_UTILISATION_CONDITIONS.keys())
+CONF_MONITOR_CONTAINER_CONDITIONS_KEYS = list(CONF_MONITOR_CONTAINER_CONDITIONS.keys())
+
+CONTAINER_SCHEMA = vol.Schema({
+    vol.Required(CONF_NAME):
+        cv.string,
+    vol.Optional(CONF_SENSORS, default=CONF_MONITOR_CONTAINER_CONDITIONS_KEYS):
+        vol.All(cv.ensure_list, [vol.In(CONF_MONITOR_CONTAINER_CONDITIONS_KEYS)]),
+})
+
+SERVER_SCHEMA = vol.Schema({
+    vol.Required(CONF_NAME, default=DEFAULT_NAME):
+        cv.string,
+    vol.Required(CONF_URL):
+        cv.string,
+    vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL):
+        cv.time_period,
+    vol.Optional(CONF_EVENTS, default=False):
+        cv.boolean,
+    vol.Optional(CONF_MONITORED_CONDITIONS, default=CONF_MONITOR_UTILISATION_CONDITIONS_KEYS):
+        vol.All(cv.ensure_list, [vol.In(CONF_MONITOR_UTILISATION_CONDITIONS_KEYS)]),
+    vol.Optional(CONF_CONTAINERS):
+        {cv.string: CONTAINER_SCHEMA}
+})
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
-        vol.Optional(CONF_NAME, default=DEFAULT_NAME):
-            cv.string,
-        vol.Optional(CONF_URL, default=DEFAULT_URL):
-            cv.string,
-        vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL):
-            cv.time_period,
-        vol.Optional(CONF_EVENTS, default=False):
-            cv.boolean,
-        vol.Optional(CONF_MONITORED_CONDITIONS, default=MONITORED_CONDITIONS):
-            vol.All(cv.ensure_list, [vol.In(MONITORED_CONDITIONS)]),
-        vol.Optional(CONF_CONTAINERS):
-            cv.ensure_list,
+        vol.Required(CONF_HOSTS):
+            vol.All(cv.ensure_list, [SERVER_SCHEMA]),
     }),
 }, extra=vol.ALLOW_EXTRA)
 
-
 def setup(hass, config):
-    _LOGGER.info("Settings: {}".format(config[DOMAIN]))
+    _LOGGER.debug("Settings: {}".format(config[DOMAIN]))
 
-    host = config[DOMAIN].get(CONF_URL)
+    hass.data[DOMAIN] = {}
+    for host in config[DOMAIN][CONF_HOSTS]:
+        name = host[CONF_NAME]
 
-    try:
-        api = DockerMonitorApi(host)
-    except (ImportError, ConnectionError) as e:
-        _LOGGER.info("Error setting up Docker API ({})".format(e))
-        return False
-    else:
-        hass.data[DOCKER_HANDLE] = {}
-        hass.data[DOCKER_HANDLE][DATA_DOCKER_API] = api
-        hass.data[DOCKER_HANDLE][DATA_CONFIG] = {
-            CONF_NAME: config[DOMAIN][CONF_NAME],
-            CONF_CONTAINERS: config[DOMAIN].get(CONF_CONTAINERS, api.get_containers()),
-            CONF_MONITORED_CONDITIONS: config[DOMAIN].get(CONF_MONITORED_CONDITIONS),
-            CONF_SCAN_INTERVAL: config[DOMAIN].get(CONF_SCAN_INTERVAL),
-        }
+        try:
+            if host[CONF_EVENTS]:
+                def event_listener(message):
+                    event = util_slugify("{} {}".format(name, EVENT_CONTAINER))
+                    _LOGGER.info("Sending event {} notification with message {}".format(event, message))
+                    hass.bus.fire(event, message)
 
-        for component in PLATFORMS:
-            load_platform(hass, component, DOMAIN, {}, config)
+                api = DockerMonitorApi(host[CONF_URL], event_listener)
+            else:
+                api = DockerMonitorApi(host[CONF_URL])
+        except (ImportError, ConnectionError) as e:
+            _LOGGER.info("Error setting up Docker API ({})".format(e))
+            return False
+        else:
+            hass.data[DOMAIN][name] = api
 
-        def monitor_stop(_service_or_event):
-            """Stop the monitor thread."""
-            _LOGGER.info("Stopping threads for Docker monitor")
+            for component in PLATFORMS:
+                load_platform(hass, component, DOMAIN, host, config)
+
+            def stats_listener():
+                hass.helpers.dispatcher.dispatcher_send("{}_{}".format(UPDATE_TOPIC, util_slugify(name)))
+            api.stats_listener.start_listen(stats_listener)
+
+    def monitor_stop(_service_or_event):
+        """Stop the monitor threads."""
+        _LOGGER.info("Stopping threads for Docker monitor")
+        for api in hass.data[DOMAIN].values():
             api.exit()
 
-        hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, monitor_stop)
-
-        def stats_listener():
-            hass.helpers.dispatcher.dispatcher_send(UPDATE_TOPIC)
-        api.stats_listener.start_listen(stats_listener)
-
-        if config[DOMAIN][CONF_EVENTS]:
-            def event_listener(message):
-                event = util_slugify("{} {}".format(config[DOMAIN][CONF_NAME], EVENT_CONTAINER))
-                _LOGGER.debug("Sending event {} notification with message {}".format(event, message))
-                hass.bus.fire(event, message)
-
-            api.event_listener.start_listen(event_listener)
+    hass.bus.listen_once(EVENT_HOMEASSISTANT_STOP, monitor_stop)
 
     return True
 
 class DockerMonitorApi:
-    def __init__(self, base_url):
+    def __init__(self, base_url, event_callback=None):
         self._base_url = base_url
 
         try:
@@ -158,7 +166,13 @@ class DockerMonitorApi:
             self.containers[container.name] = ContainerData(container)
 
         self.stats_listener = DockerContainerStats(self._client, self)
-        self.event_listener = DockerContainerEventListener(self._client)
+
+        self._event_listener = None
+        if event_callback:
+            def api_event_callback(message):
+                event_callback(message)
+            self._event_listener = DockerContainerEventListener(self._client, api_event_callback)
+            self._event_listener.start()
 
     def get_info(self):
         version = {}
@@ -180,27 +194,21 @@ class DockerMonitorApi:
         return self.containers
 
     def exit(self):
-        if self.event_listener.isAlive():
-            self.event_listener.shutdown()
+        if self._event_listener:
+            self._event_listener.shutdown()
         if self.stats_listener.isAlive():
             self.stats_listener.shutdown()
 
 class DockerContainerEventListener(threading.Thread):
     """Docker monitor container event listener thread."""
 
-    def __init__(self, client):
+    def __init__(self, client, callback):
         super().__init__(name='DockerContainerEventListener')
 
         self._client = client
-
-        self._callback = None
-        self._event_stream = None
-
-    def start_listen(self, callback):
-        """Start event-processing thread."""
-        _LOGGER.debug("Start Event listener thread")
         self._callback = callback
-        self.start()
+
+        self._event_stream = None
 
     def shutdown(self):
         """Signal shutdown of processing event."""
@@ -302,22 +310,28 @@ class DockerContainerStats(threading.Thread):
 
     def run(self):
         streams = {}
-        for container in self._client.containers.list(all=True) or []:
-            streams[container.name] = container.stats(stream=True, decode=True)
-
         while not self._stopper.isSet():
-            for name, stream in streams.items():
-                for raw in stream:
-                    container = self._api.get_containers()[name]
+            for name, container in self._api.get_containers().items():
+                status = container.get_info()[CONTAINER_INFO_STATUS]
 
-                    stats = None
-                    if container.get_info()[CONTAINER_INFO_STATUS] in ('running', 'paused'):
+                stats = None
+                if status in ('running', 'paused'):
+                    if name not in streams:
+                        streams[name] = self._client.containers.get(name).stats(stream=True, decode=True)
+
+                    for raw in streams[name]:
                         stats = self.__parse_stats(name, raw)
 
-                    container.set_stats(stats)
+                        # Break from event to streams other streams
+                        break
+                elif name in streams:
+                    streams[name].close()
 
-                    # Break from event to streams other streams
-                    break
+                    # Remove old stats from this container
+                    if name in self._old:
+                        self._old.pop(name)
+
+                container.set_stats(stats)
 
             self._callback()
 
@@ -377,42 +391,23 @@ class DockerContainerStats(threading.Thread):
             memory['usage_percent'] = float(memory['usage']) / float(memory['limit']) * 100.0
 
         # Network stats
-        # network_stats = {}
-        # try:
-        #     network_new = {}
-        #     _LOGGER.debug("Found network stats: {}".format(raw["networks"]))
-        #     network_stats['total_tx'] = 0
-        #     network_stats['total_rx'] = 0
-        #     for if_name, data in raw["networks"].items():
-        #         _LOGGER.debug("Stats for interface {} -> up {} / down {}".format(if_name, data["tx_bytes"], data["rx_bytes"]))
-        #         network_stats['total_tx'] += data["tx_bytes"]
-        #         network_stats['total_rx'] += data["rx_bytes"]
-
-        #     network_new = {
-        #         'read': stats[name]['read'],
-        #         'total_tx': network_stats['total_tx'],
-        #         'total_rx': network_stats['total_rx'],
-        #     }
-
-        # except KeyError as e:
-        #     # raw_stats do not have network information
-        #     _LOGGER.info("Cannot grab network usage for container {} ({})".format(
-        #         container.id, e))
-        #     _LOGGER.debug(raw)
-        # else:
-        #     if 'network' in old[name]:
-        #         tx = network_new['total_tx'] - old[name]['network']['total_tx']
-        #         rx = network_new['total_rx'] - old[name]['network']['total_rx']
-        #         tim = (network_new['read'] - old[name]['network']['read']).total_seconds()
-
-        #         network_stats['speed_tx'] = float(tx) / float(tim)
-        #         network_stats['speed_rx'] = float(rx) / float(tim)
-
-        #     old[name]['network'] = network_new
+        network = {}
+        try:
+            _LOGGER.debug("Found network stats: {}".format(raw["networks"]))
+            network['total_tx'] = 0
+            network['total_rx'] = 0
+            for if_name, data in raw["networks"].items():
+                _LOGGER.debug("Stats for interface {} -> up {} / down {}".format(if_name, data["tx_bytes"], data["rx_bytes"]))
+                network['total_tx'] += data["tx_bytes"]
+                network['total_rx'] += data["rx_bytes"]
+        except KeyError as e:
+            # raw_stats do not have network information
+            _LOGGER.info("Cannot grab network usage for container {} ({})".format(name, e))
+            _LOGGER.debug(raw)
 
         stats['cpu'] = cpu
         stats['memory'] = memory
-        # stats['network'] = network_stats
+        stats['network'] = network
 
         # Update stats history
         self._old[name] = old

@@ -15,6 +15,7 @@ from homeassistant.const import (
     ATTR_ATTRIBUTION,
     CONF_NAME
 )
+from homeassistant.util import slugify as util_slugify
 from homeassistant.core import callback
 
 from .const import (
@@ -24,7 +25,7 @@ from .const import (
     CONTAINER_INFO_STATUS,
     DATA_CONFIG,
     DATA_DOCKER_API,
-    DOCKER_HANDLE,
+    DOMAIN,
     ICON_SWITCH,
     UPDATE_TOPIC,
 )
@@ -39,12 +40,18 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the Docker Monitor Switch."""
 
-    api = hass.data[DOCKER_HANDLE][DATA_DOCKER_API]
-    config = hass.data[DOCKER_HANDLE][DATA_CONFIG]
-    clientname = config[CONF_NAME]
+    _LOGGER.debug(discovery_info)
+    if discovery_info is None:
+        _LOGGER.warning(
+            "To use this you need to configure the 'docker_monitor' component")
+        return
 
-    switches = [ContainerSwitch(clientname, api.get_containers()[name])
-                for name in config[CONF_CONTAINERS] if name in api.get_containers()]
+    host_name = discovery_info['name']
+    api = hass.data[DOMAIN][host_name]
+
+    containers = api.get_containers()
+    switches = [ContainerSwitch(host_name, containers[name])
+                for name in discovery_info[CONF_CONTAINERS].keys() if name in containers]
 
     if switches:
         async_add_entities(switches)
@@ -91,7 +98,7 @@ class ContainerSwitch(SwitchDevice):
     async def async_added_to_hass(self):
         """Register callbacks."""
         self.hass.helpers.dispatcher.async_dispatcher_connect(
-            UPDATE_TOPIC, self.async_update_callback)
+            "{}_{}".format(UPDATE_TOPIC, util_slugify(self._clientname)), self.async_update_callback)
 
     @callback
     def async_update_callback(self):

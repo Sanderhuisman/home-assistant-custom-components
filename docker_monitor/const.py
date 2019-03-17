@@ -21,17 +21,18 @@ DEFAULT_NAME = 'Docker'
 CONF_EVENTS = 'events'
 CONF_CONTAINERS = 'containers'
 
-CONF_MONITOR_UTILISATION_VERSION = 'utilization_version'
-CONF_MONITOR_CONTAINER_STATUS = 'container_status'
-CONF_MONITOR_CONTAINER_UPTIME = 'container_uptime'
-CONF_MONITOR_CONTAINER_IMAGE = 'container_image'
-CONF_MONITOR_CONTAINER_CPU_PERCENTAGE = 'container_cpu_percentage_usage'
-CONF_MONITOR_CONTAINER_MEMORY_USAGE = 'container_memory_usage'
-CONF_MONITOR_CONTAINER_MEMORY_PERCENTAGE = 'container_memory_percentage_usage'
-CONF_MONITOR_CONTAINER_NETWORK_SPEED_UP = 'container_network_speed_up'
-CONF_MONITOR_CONTAINER_NETWORK_SPEED_DOWN = 'container_network_speed_down'
-CONF_MONITOR_CONTAINER_NETWORK_TOTAL_UP = 'container_network_total_up'
-CONF_MONITOR_CONTAINER_NETWORK_TOTAL_DOWN = 'container_network_total_down'
+CONF_MONITOR_UTILISATION_VERSION = 'version'
+
+CONF_MONITOR_CONTAINER_STATUS = 'status'
+CONF_MONITOR_CONTAINER_UPTIME = 'uptime'
+CONF_MONITOR_CONTAINER_IMAGE = 'image'
+CONF_MONITOR_CONTAINER_CPU_PERCENTAGE = 'cpu_percentage_usage'
+CONF_MONITOR_CONTAINER_MEMORY_USAGE = 'memory_usage'
+CONF_MONITOR_CONTAINER_MEMORY_PERCENTAGE = 'memory_percentage_usage'
+CONF_MONITOR_CONTAINER_NETWORK_SPEED_UP = 'network_speed_up'
+CONF_MONITOR_CONTAINER_NETWORK_SPEED_DOWN = 'network_speed_down'
+CONF_MONITOR_CONTAINER_NETWORK_TOTAL_UP = 'network_total_up'
+CONF_MONITOR_CONTAINER_NETWORK_TOTAL_DOWN = 'network_total_down'
 
 CONF_MONITOR_UTILISATION_CONDITIONS = {
     CONF_MONITOR_UTILISATION_VERSION: ['Version', None, 'mdi:information-outline', None],
@@ -44,8 +45,6 @@ CONF_MONITOR_CONTAINER_CONDITIONS = {
     CONF_MONITOR_CONTAINER_CPU_PERCENTAGE: ['CPU use', '%', 'mdi:chip', None],
     CONF_MONITOR_CONTAINER_MEMORY_USAGE: ['Memory use', 'MB', 'mdi:memory', None],
     CONF_MONITOR_CONTAINER_MEMORY_PERCENTAGE: ['Memory use (percent)', '%', 'mdi:memory', None],
-    CONF_MONITOR_CONTAINER_NETWORK_SPEED_UP: ['Network speed Up', 'kB/s', 'mdi:upload', None],
-    CONF_MONITOR_CONTAINER_NETWORK_SPEED_DOWN: ['Network speed Down', 'kB/s', 'mdi:download', None],
     CONF_MONITOR_CONTAINER_NETWORK_TOTAL_UP: ['Network total Up', 'MB', 'mdi:upload', None],
     CONF_MONITOR_CONTAINER_NETWORK_TOTAL_DOWN: ['Network total Down', 'MB', 'mdi:download', None],
 }
