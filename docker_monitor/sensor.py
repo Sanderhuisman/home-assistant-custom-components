@@ -20,7 +20,6 @@ from homeassistant.util import slugify as util_slugify
 from homeassistant.helpers.entity import Entity
 
 from .const import (
-    UPDATE_TOPIC,
     ATTR_CREATED,
     ATTR_IMAGE,
     ATTR_MEMORY_LIMIT,
@@ -235,11 +234,9 @@ class DockerContainerSensor(Entity):
 
     async def async_added_to_hass(self):
         """Register callbacks."""
-        self.hass.helpers.dispatcher.async_dispatcher_connect(
-            "{}_{}".format(UPDATE_TOPIC, util_slugify(self._clientname)), self.async_update_callback)
+        self._container.register_callback(self.event_callback)
 
-    @callback
-    def async_update_callback(self):
+    def event_callback(self):
         """Update callback."""
         stats = self._container.get_stats()
         info = self._container.get_info()
@@ -260,30 +257,31 @@ class DockerContainerSensor(Entity):
                     state = info[CONTAINER_INFO_IMAGE][0]
 
                 # cpu
-                if self._var_id == CONF_MONITOR_CONTAINER_CPU_PERCENTAGE:
-                    cpu = stats.get('cpu', {}).get('total')
-                    if cpu is not None:
-                        state = round(cpu, 1)
+                elif stats:
+                    if self._var_id == CONF_MONITOR_CONTAINER_CPU_PERCENTAGE:
+                        cpu = stats.get('cpu', {}).get('total')
+                        if cpu is not None:
+                            state = round(cpu, 1)
 
-                # memory
-                elif self._var_id == CONF_MONITOR_CONTAINER_MEMORY_USAGE:
-                    use = stats.get('memory', {}).get('usage')
-                    if use is not None:
-                        state = round(use / (1024 ** 2), PRECISION)  # Bytes to MB
-                elif self._var_id == CONF_MONITOR_CONTAINER_MEMORY_PERCENTAGE:
-                    use = stats.get('memory', {}).get('usage_percent')
-                    if use is not None:
-                        state = round(use, 2)
+                    # memory
+                    elif self._var_id == CONF_MONITOR_CONTAINER_MEMORY_USAGE:
+                        use = stats.get('memory', {}).get('usage')
+                        if use is not None:
+                            state = round(use / (1024 ** 2), PRECISION)  # Bytes to MB
+                    elif self._var_id == CONF_MONITOR_CONTAINER_MEMORY_PERCENTAGE:
+                        use = stats.get('memory', {}).get('usage_percent')
+                        if use is not None:
+                            state = round(use, 2)
 
-                # network
-                elif self._var_id == CONF_MONITOR_CONTAINER_NETWORK_TOTAL_UP:
-                    up = stats.get('network', {}).get('total_tx')  # Bytes to kB
-                    if up is not None:
-                        state = round(up / (1024 ** 2), PRECISION)
-                elif self._var_id == CONF_MONITOR_CONTAINER_NETWORK_TOTAL_DOWN:
-                    down = stats.get('network', {}).get('total_rx')
-                    if down is not None:
-                        state = round(down / (1024 ** 2), PRECISION)
+                    # network
+                    elif self._var_id == CONF_MONITOR_CONTAINER_NETWORK_TOTAL_UP:
+                        up = stats.get('network', {}).get('total_tx')  # Bytes to kB
+                        if up is not None:
+                            state = round(up / (1024 ** 2), PRECISION)
+                    elif self._var_id == CONF_MONITOR_CONTAINER_NETWORK_TOTAL_DOWN:
+                        down = stats.get('network', {}).get('total_rx')
+                        if down is not None:
+                            state = round(down / (1024 ** 2), PRECISION)
 
         self._available = state is not STATE_UNAVAILABLE
         if self._state is not state:

@@ -2,7 +2,6 @@
 from datetime import timedelta
 
 DOMAIN = 'docker_monitor'
-UPDATE_TOPIC = DOMAIN + '_update'
 
 PLATFORMS = [
     'sensor',

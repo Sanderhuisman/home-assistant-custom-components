@@ -29,8 +29,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     EVENT_CONTAINER,
-    PLATFORMS,
-    UPDATE_TOPIC
+    PLATFORMS
 )
 from .helpers import DockerMonitorApi
 
@@ -104,10 +103,7 @@ def setup(hass, config):
             for component in PLATFORMS:
                 load_platform(hass, component, DOMAIN, host, config)
 
-            def stats_listener():
-                hass.helpers.dispatcher.dispatcher_send(
-                    "{}_{}".format(UPDATE_TOPIC, util_slugify(name)))
-            api.stats_listener.start_listen(stats_listener)
+            api.start()
 
     def monitor_stop(_service_or_event):
         """Stop the monitor threads."""

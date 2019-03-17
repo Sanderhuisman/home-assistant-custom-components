@@ -24,8 +24,7 @@ from .const import (
     CONTAINER_INFO,
     CONTAINER_INFO_STATUS,
     DOMAIN,
-    ICON_SWITCH,
-    UPDATE_TOPIC
+    ICON_SWITCH
 )
 
 VERSION = '0.0.2'
@@ -44,7 +43,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             "To use this you need to configure the 'docker_monitor' component")
         return
 
-    host_name = discovery_info['name']
+    host_name = discovery_info[CONF_NAME]
     api = hass.data[DOMAIN][host_name]
 
     containers = api.get_containers()
@@ -95,11 +94,9 @@ class ContainerSwitch(SwitchDevice):
 
     async def async_added_to_hass(self):
         """Register callbacks."""
-        self.hass.helpers.dispatcher.async_dispatcher_connect(
-            "{}_{}".format(UPDATE_TOPIC, util_slugify(self._clientname)), self.async_update_callback)
+        self._container.register_callback(self.event_callback)
 
-    @callback
-    def async_update_callback(self):
+    def event_callback(self):
         """Update callback."""
 
         state = self._container.get_info()[CONTAINER_INFO_STATUS] == 'running'

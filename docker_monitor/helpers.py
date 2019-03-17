@@ -42,7 +42,7 @@ class DockerMonitorApi:
         for container in self._client.containers.list(all=True) or []:
             self.containers[container.name] = ContainerData(container)
 
-        self.stats_listener = DockerContainerStats(self._client, self)
+        self._stats_listener = DockerContainerStats(self._client, self)
 
         self._event_listener = None
         if event_callback:
@@ -50,7 +50,18 @@ class DockerMonitorApi:
                 event_callback(message)
             self._event_listener = DockerContainerEventListener(
                 self._client, api_event_callback)
+
+    def start(self):
+        if self._event_listener:
             self._event_listener.start()
+
+        self._stats_listener.start_listen()
+
+    def exit(self):
+        if self._event_listener:
+            self._event_listener.shutdown()
+        if self._stats_listener.isAlive():
+            self._stats_listener.shutdown()
 
     def get_info(self):
         version = {}
@@ -70,12 +81,6 @@ class DockerMonitorApi:
 
     def get_containers(self):
         return self.containers
-
-    def exit(self):
-        if self._event_listener:
-            self._event_listener.shutdown()
-        if self.stats_listener.isAlive():
-            self.stats_listener.shutdown()
 
 
 class DockerContainerEventListener(threading.Thread):
@@ -128,9 +133,14 @@ class ContainerData:
 
         self._name = container.name
         self._stats = None
+        self._subscribers = []
 
     def get_name(self):
         return self._name
+
+    def register_callback(self, callback):
+        if callback not in self._subscribers:
+            self._subscribers.append(callback)
 
     def get_info(self):
         from dateutil import parser
@@ -149,16 +159,24 @@ class ContainerData:
     def start(self):
         _LOGGER.info("Start container {}".format(self._name))
         self._container.start()
+        self._notify()
 
     def stop(self, timeout=10):
         _LOGGER.info("Stop container {}".format(self._name))
         self._container.stop(timeout=timeout)
+        self._container.wait(timeout=timeout)
+        self._notify()
 
     def get_stats(self):
         return self._stats
 
     def set_stats(self, stats):
         self._stats = stats
+        self._notify()
+
+    def _notify(self):
+        for callback in self._subscribers:
+            callback()
 
 
 class DockerContainerStats(threading.Thread):
@@ -171,14 +189,12 @@ class DockerContainerStats(threading.Thread):
         self._api = api
 
         self._stopper = threading.Event()
-        self._callback = None
         self._interval = None
         self._old = {}
 
-    def start_listen(self, callback, interval=10):
+    def start_listen(self, interval=10):
         """Start event-processing thread."""
         _LOGGER.debug("Start Stats listener thread")
-        self._callback = callback
         self._interval = interval
         self.start()
 
@@ -213,8 +229,6 @@ class DockerContainerStats(threading.Thread):
                         self._old.pop(name)
 
                 container.set_stats(stats)
-
-            self._callback()
 
             # Wait before read
             self._stopper.wait(self._interval)
