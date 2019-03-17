@@ -223,6 +223,7 @@ class DockerContainerStats(threading.Thread):
                         break
                 elif name in streams:
                     streams[name].close()
+                    streams.pop(name)
 
                     # Remove old stats from this container
                     if name in self._old:
