@@ -10,13 +10,7 @@ PLATFORMS = [
 ]
 EVENT_CONTAINER = 'container_event'
 
-DOCKER_HANDLE = 'docker_handle'
-DATA_DOCKER_API = 'api'
-DATA_CONFIG = 'config'
-
 DEFAULT_SCAN_INTERVAL = timedelta(seconds=10)
-DEFAULT_URL = 'unix://var/run/docker.sock'
-DEFAULT_NAME = 'Docker'
 
 CONF_EVENTS = 'events'
 CONF_CONTAINERS = 'containers'
@@ -29,8 +23,6 @@ CONF_MONITOR_CONTAINER_IMAGE = 'image'
 CONF_MONITOR_CONTAINER_CPU_PERCENTAGE = 'cpu_percentage_usage'
 CONF_MONITOR_CONTAINER_MEMORY_USAGE = 'memory_usage'
 CONF_MONITOR_CONTAINER_MEMORY_PERCENTAGE = 'memory_percentage_usage'
-CONF_MONITOR_CONTAINER_NETWORK_SPEED_UP = 'network_speed_up'
-CONF_MONITOR_CONTAINER_NETWORK_SPEED_DOWN = 'network_speed_down'
 CONF_MONITOR_CONTAINER_NETWORK_TOTAL_UP = 'network_total_up'
 CONF_MONITOR_CONTAINER_NETWORK_TOTAL_DOWN = 'network_total_down'
 

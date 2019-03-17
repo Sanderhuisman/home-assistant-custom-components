@@ -48,8 +48,6 @@ from .const import (
     CONTAINER_INFO_IMAGE,
     CONTAINER_INFO_STARTED,
     CONTAINER_INFO_STATUS,
-    DATA_CONFIG,
-    DATA_DOCKER_API,
     DOMAIN,
     PRECISION,
     VERSION_INFO_API_VERSION,
@@ -75,7 +73,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             "To use this you need to configure the 'docker_monitor' component")
         return
 
-    host_name = discovery_info['name']
+    host_name = discovery_info[CONF_NAME]
     api = hass.data[DOMAIN][host_name]
 
     sensors = [DockerUtilSensor(api, host_name, variable)

@@ -15,19 +15,17 @@ from homeassistant.const import (
     ATTR_ATTRIBUTION,
     CONF_NAME
 )
-from homeassistant.util import slugify as util_slugify
 from homeassistant.core import callback
+from homeassistant.util import slugify as util_slugify
 
 from .const import (
     CONF_ATTRIBUTION,
     CONF_CONTAINERS,
     CONTAINER_INFO,
     CONTAINER_INFO_STATUS,
-    DATA_CONFIG,
-    DATA_DOCKER_API,
     DOMAIN,
     ICON_SWITCH,
-    UPDATE_TOPIC,
+    UPDATE_TOPIC
 )
 
 VERSION = '0.0.2'
