@@ -26,18 +26,27 @@ CONF_MONITOR_CONTAINER_NETWORK_TOTAL_UP = 'network_total_up'
 CONF_MONITOR_CONTAINER_NETWORK_TOTAL_DOWN = 'network_total_down'
 
 CONF_MONITOR_UTILISATION_CONDITIONS = {
-    CONF_MONITOR_UTILISATION_VERSION: ['Version', None, 'mdi:information-outline', None],
+    CONF_MONITOR_UTILISATION_VERSION:
+        ['Version', None, 'mdi:information-outline', None],
 }
 
 CONF_MONITOR_CONTAINER_CONDITIONS = {
-    CONF_MONITOR_CONTAINER_STATUS: ['Status', None, 'mdi:checkbox-marked-circle-outline', None],
-    CONF_MONITOR_CONTAINER_UPTIME: ['Up Time', '', 'mdi:clock', 'timestamp'],
-    CONF_MONITOR_CONTAINER_IMAGE: ['Image', None, 'mdi:information-outline', None],
-    CONF_MONITOR_CONTAINER_CPU_PERCENTAGE: ['CPU use', '%', 'mdi:chip', None],
-    CONF_MONITOR_CONTAINER_MEMORY_USAGE: ['Memory use', 'MB', 'mdi:memory', None],
-    CONF_MONITOR_CONTAINER_MEMORY_PERCENTAGE: ['Memory use (percent)', '%', 'mdi:memory', None],
-    CONF_MONITOR_CONTAINER_NETWORK_TOTAL_UP: ['Network total Up', 'MB', 'mdi:upload', None],
-    CONF_MONITOR_CONTAINER_NETWORK_TOTAL_DOWN: ['Network total Down', 'MB', 'mdi:download', None],
+    CONF_MONITOR_CONTAINER_STATUS:
+        ['Status', None, 'mdi:checkbox-marked-circle-outline', None],
+    CONF_MONITOR_CONTAINER_UPTIME:
+        ['Up Time', '', 'mdi:clock', 'timestamp'],
+    CONF_MONITOR_CONTAINER_IMAGE:
+        ['Image', None, 'mdi:information-outline', None],
+    CONF_MONITOR_CONTAINER_CPU_PERCENTAGE:
+        ['CPU use', '%', 'mdi:chip', None],
+    CONF_MONITOR_CONTAINER_MEMORY_USAGE:
+        ['Memory use', 'MB', 'mdi:memory', None],
+    CONF_MONITOR_CONTAINER_MEMORY_PERCENTAGE:
+        ['Memory use (percent)', '%', 'mdi:memory', None],
+    CONF_MONITOR_CONTAINER_NETWORK_TOTAL_UP:
+        ['Network total Up', 'MB', 'mdi:upload', None],
+    CONF_MONITOR_CONTAINER_NETWORK_TOTAL_DOWN:
+        ['Network total Down', 'MB', 'mdi:download', None],
 }
 
 ATTR_CREATED = 'Created'

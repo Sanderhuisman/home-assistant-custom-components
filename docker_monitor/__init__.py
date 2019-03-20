@@ -36,7 +36,10 @@ from .helpers import DockerMonitorApi
 
 VERSION = '0.0.2'
 
-REQUIREMENTS = ['docker==3.7.0', 'python-dateutil==2.7.5']
+REQUIREMENTS = [
+    'docker==3.7.1',
+    'python-dateutil==2.7.5'
+]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -46,8 +49,6 @@ CONF_MONITOR_CONTAINER_CONDITIONS_KEYS = list(
     CONF_MONITOR_CONTAINER_CONDITIONS.keys())
 
 CONTAINER_SCHEMA = vol.Schema({
-    vol.Required(CONF_NAME):
-        cv.string,
     vol.Optional(CONF_SENSORS, default=CONF_MONITOR_CONTAINER_CONDITIONS_KEYS):
         vol.All(cv.ensure_list, [
                 vol.In(CONF_MONITOR_CONTAINER_CONDITIONS_KEYS)]),
@@ -64,11 +65,12 @@ SERVER_SCHEMA = vol.Schema({
         cv.time_period,
     vol.Optional(CONF_EVENT, default=False):
         cv.boolean,
-    vol.Optional(CONF_MONITORED_CONDITIONS, default=CONF_MONITOR_UTILISATION_CONDITIONS_KEYS):
+    vol.Optional(CONF_MONITORED_CONDITIONS,
+                 default=CONF_MONITOR_UTILISATION_CONDITIONS_KEYS):
         vol.All(cv.ensure_list, [
-                vol.In(CONF_MONITOR_UTILISATION_CONDITIONS_KEYS)]),
-    vol.Optional(CONF_CONTAINERS):
-        {cv.string: CONTAINER_SCHEMA}
+            vol.In(CONF_MONITOR_UTILISATION_CONDITIONS_KEYS)]),
+    vol.Required(CONF_CONTAINERS, default={}):
+        vol.Schema({cv.string: CONTAINER_SCHEMA})
 })
 
 CONFIG_SCHEMA = vol.Schema({
@@ -80,25 +82,14 @@ CONFIG_SCHEMA = vol.Schema({
 
 
 def setup(hass, config):
-    _LOGGER.debug("Settings: {}".format(config[DOMAIN]))
-
     hass.data[DOMAIN] = {}
     for host in config[DOMAIN][CONF_HOSTS]:
         name = host[CONF_NAME]
 
         try:
-            if host[CONF_EVENT]:
-                def event_listener(message):
-                    event = util_slugify("{} {}".format(name, EVENT_CONTAINER))
-                    _LOGGER.info(
-                        "Sending event {} notification with message {}".format(event, message))
-                    hass.bus.fire(event, message)
-
-                api = DockerMonitorApi(host[CONF_URL], event_listener)
-            else:
-                api = DockerMonitorApi(host[CONF_URL])
-        except (ImportError, ConnectionError) as e:
-            _LOGGER.info("Error setting up Docker API ({})".format(e))
+            api = DockerMonitorApi(host[CONF_URL])
+        except ImportError as e:
+            _LOGGER.error("Error setting up Docker API ({})".format(e))
             return False
         else:
             hass.data[DOMAIN][name] = api
@@ -106,7 +97,13 @@ def setup(hass, config):
             for component in PLATFORMS:
                 load_platform(hass, component, DOMAIN, host, config)
 
-            api.start()
+            if host[CONF_EVENT]:
+                def event_listener(message):
+                    event = util_slugify("{} {}".format(name, EVENT_CONTAINER))
+                    hass.bus.fire(event, message)
+                api.start(event_listener)
+            else:
+                api.start()
 
     def monitor_stop(_service_or_event):
         """Stop the monitor threads."""

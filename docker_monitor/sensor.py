@@ -66,7 +66,6 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the Docker Monitor Sensor."""
 
-    _LOGGER.debug(discovery_info)
     if discovery_info is None:
         _LOGGER.warning(
             "To use this you need to configure the 'docker_monitor' component")
@@ -78,18 +77,17 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     sensors = [DockerUtilSensor(api, host_name, variable)
                for variable in discovery_info[CONF_MONITORED_CONDITIONS] if variable in CONF_MONITOR_UTILISATION_CONDITIONS]
 
-    containers = api.get_containers()
     interval = discovery_info[CONF_SCAN_INTERVAL].total_seconds()
 
     for name, conf in discovery_info[CONF_CONTAINERS].items():
-        if name in containers:
-            sensors += [DockerContainerSensor(host_name, containers[name], variable, interval)
-                        for variable in conf[CONF_SENSORS] if variable in CONF_MONITOR_CONTAINER_CONDITIONS]
+        sensors += [DockerContainerSensor(host_name, api, name, variable, interval)
+                    for variable in conf[CONF_SENSORS] if variable in CONF_MONITOR_CONTAINER_CONDITIONS]
 
     if sensors:
         async_add_entities(sensors)
     else:
         _LOGGER.info("No containers setup")
+
 
 class DockerUtilSensor(Entity):
     """Representation of a Docker Sensor."""
@@ -110,8 +108,6 @@ class DockerUtilSensor(Entity):
             ATTR_ATTRIBUTION: CONF_ATTRIBUTION
         }
 
-        _LOGGER.info(
-            "Initializing utilization sensor \"{}\"".format(self._var_id))
         self.update()
 
     @property
@@ -139,22 +135,36 @@ class DockerUtilSensor(Entity):
         return self._var_class
 
     @property
+    def available(self):
+        """Could the device be accessed during the last update call."""
+        return self._state is not None
+
+    @property
     def unit_of_measurement(self):
         """Return the unit the value is expressed in."""
         return self._var_unit
 
     def update(self):
         """Get the latest data for the states."""
-        if self._var_id == CONF_MONITOR_UTILISATION_VERSION:
+        version = None
+        try:
             version = self._api.get_info()
-            self._state = version.get(
-                VERSION_INFO_VERSION, None)
-            self._attributes[ATTR_VERSION_API] = version.get(
-                VERSION_INFO_API_VERSION, None)
-            self._attributes[ATTR_VERSION_OS] = version.get(
-                VERSION_INFO_OS, None)
-            self._attributes[ATTR_VERSION_ARCH] = version.get(
-                VERSION_INFO_ARCHITECTURE, None)
+        except Exception as ex:
+            _LOGGER.info(
+                "Could not request docker daemon info ({})".format(ex))
+        else:
+            if version:
+                if self._var_id == CONF_MONITOR_UTILISATION_VERSION:
+                    self._state = version.get(VERSION_INFO_VERSION, None)
+                    self._attributes[ATTR_VERSION_API] = version.get(
+                        VERSION_INFO_API_VERSION, None)
+                    self._attributes[ATTR_VERSION_OS] = version.get(
+                        VERSION_INFO_OS, None)
+                    self._attributes[ATTR_VERSION_ARCH] = version.get(
+                        VERSION_INFO_ARCHITECTURE, None)
+            else:
+                self._state = None
+                self._attributes = None
 
     @property
     def device_state_attributes(self):
@@ -165,10 +175,11 @@ class DockerUtilSensor(Entity):
 class DockerContainerSensor(Entity):
     """Representation of a Docker Sensor."""
 
-    def __init__(self,  clientname, container, variable, interval):
+    def __init__(self,  clientname, api, name, variable, interval):
         """Initialize the sensor."""
         self._clientname = clientname
-        self._container = container
+        self._api = api
+        self._name = name
         self._interval = interval
 
         self._var_id = variable
@@ -183,13 +194,10 @@ class DockerContainerSensor(Entity):
             ATTR_ATTRIBUTION: CONF_ATTRIBUTION
         }
 
-        _LOGGER.info("Initializing Docker sensor \"{}\" with parameter: {}".format(
-            self._container.get_name(), self._var_name))
-
     @property
     def name(self):
         """Return the name of the sensor, if any."""
-        return "{} {} {}".format(self._clientname, self._container.get_name(), self._var_name)
+        return "{} {} {}".format(self._clientname, self._name, self._var_name)
 
     @property
     def icon(self):
@@ -229,61 +237,75 @@ class DockerContainerSensor(Entity):
     @property
     def available(self):
         """Could the device be accessed during the last update call."""
-        # return self._container.get_info()[CONTAINER_INFO_STATUS] == 'running'
         return self._available
 
     async def async_added_to_hass(self):
         """Register callbacks."""
-        self._container.register_callback(self.event_callback)
+        self._container = self._api.watch_container(
+            self._name, self.event_callback)
+        self.event_callback()
 
     def event_callback(self):
         """Update callback."""
-        stats = self._container.get_stats()
-        info = self._container.get_info()
 
-        state = STATE_UNAVAILABLE
-
-        if self._var_id == CONF_MONITOR_CONTAINER_STATUS:
-            state = info[CONTAINER_INFO_STATUS]
+        info = None
+        stats = None
+        try:
+            info = self._container.get_info()
+            stats = self._container.get_stats()
+        except Exception as ex:
+            _LOGGER.info("Cannot request container info ({})".format(ex))
         else:
-            if info[CONTAINER_INFO_STATUS] == 'running':
-                # Info
-                if self._var_id == CONF_MONITOR_CONTAINER_UPTIME:
-                    up_time = info[CONTAINER_INFO_STARTED]
-                    if up_time is not None:
-                        state = dt_util.as_local(up_time).isoformat()
-                elif self._var_id == CONF_MONITOR_CONTAINER_IMAGE:
-                    # get first from array
-                    state = info[CONTAINER_INFO_IMAGE][0]
+            if info and stats:
+                state = STATE_UNAVAILABLE
 
-                # cpu
-                elif stats:
-                    if self._var_id == CONF_MONITOR_CONTAINER_CPU_PERCENTAGE:
-                        cpu = stats.get('cpu', {}).get('total')
-                        if cpu is not None:
-                            state = round(cpu, 1)
+                if self._var_id == CONF_MONITOR_CONTAINER_STATUS:
+                    state = info.get(CONTAINER_INFO_STATUS)
+                else:
+                    if info[CONTAINER_INFO_STATUS] == 'running':
+                        # Info
+                        if self._var_id == CONF_MONITOR_CONTAINER_UPTIME:
+                            up_time = info.get(CONTAINER_INFO_STARTED)
+                            if up_time:
+                                state = dt_util.as_local(up_time).isoformat()
+                        elif self._var_id == CONF_MONITOR_CONTAINER_IMAGE:
+                            # get first from array
+                            images = info.get(CONTAINER_INFO_IMAGE)
+                            if images:
+                                state = images[0]
 
-                    # memory
-                    elif self._var_id == CONF_MONITOR_CONTAINER_MEMORY_USAGE:
-                        use = stats.get('memory', {}).get('usage')
-                        if use is not None:
-                            state = round(use / (1024 ** 2), PRECISION)  # Bytes to MB
-                    elif self._var_id == CONF_MONITOR_CONTAINER_MEMORY_PERCENTAGE:
-                        use = stats.get('memory', {}).get('usage_percent')
-                        if use is not None:
-                            state = round(use, 2)
+                        # cpu
+                        elif stats:
+                            if self._var_id == CONF_MONITOR_CONTAINER_CPU_PERCENTAGE:
+                                cpu = stats.get('cpu', {}).get('total')
+                                if cpu is not None:
+                                    state = round(cpu, 1)
 
-                    # network
-                    elif self._var_id == CONF_MONITOR_CONTAINER_NETWORK_TOTAL_UP:
-                        up = stats.get('network', {}).get('total_tx')  # Bytes to kB
-                        if up is not None:
-                            state = round(up / (1024 ** 2), PRECISION)
-                    elif self._var_id == CONF_MONITOR_CONTAINER_NETWORK_TOTAL_DOWN:
-                        down = stats.get('network', {}).get('total_rx')
-                        if down is not None:
-                            state = round(down / (1024 ** 2), PRECISION)
+                            # memory
+                            elif self._var_id == CONF_MONITOR_CONTAINER_MEMORY_USAGE:
+                                use = stats.get('memory', {}).get('usage')
+                                if use is not None:
+                                    # Bytes to MB
+                                    state = round(use / (1024 ** 2), PRECISION)
+                            elif self._var_id == CONF_MONITOR_CONTAINER_MEMORY_PERCENTAGE:
+                                use = stats.get('memory', {}).get(
+                                    'usage_percent')
+                                if use is not None:
+                                    state = round(use, 2)
 
-        self._available = state is not STATE_UNAVAILABLE
-        if self._state is not state:
-            self._state = state
-            self.async_schedule_update_ha_state()
+                            # network
+                            elif self._var_id == CONF_MONITOR_CONTAINER_NETWORK_TOTAL_UP:
+                                up = stats.get('network', {}).get(
+                                    'total_tx')  # Bytes to kB
+                                if up is not None:
+                                    state = round(up / (1024 ** 2), PRECISION)
+                            elif self._var_id == CONF_MONITOR_CONTAINER_NETWORK_TOTAL_DOWN:
+                                down = stats.get('network', {}).get('total_rx')
+                                if down is not None:
+                                    state = round(
+                                        down / (1024 ** 2), PRECISION)
+
+                self._available = state is not STATE_UNAVAILABLE
+                if self._state is not state:
+                    self._state = state
+                    self.async_schedule_update_ha_state()

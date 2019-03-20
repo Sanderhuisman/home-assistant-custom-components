@@ -35,10 +35,10 @@ DEPENDENCIES = ['docker_monitor']
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+async def async_setup_platform(
+    hass, config, async_add_entities, discovery_info=None):
     """Set up the Docker Monitor Switch."""
 
-    _LOGGER.debug(discovery_info)
     if discovery_info is None:
         _LOGGER.warning(
             "To use this you need to configure the 'docker_monitor' component")
@@ -47,10 +47,9 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     host_name = discovery_info[CONF_NAME]
     api = hass.data[DOMAIN][host_name]
 
-    containers = api.get_containers()
-    switches = [ContainerSwitch(host_name, containers[name])
-                for name in discovery_info[CONF_CONTAINERS].keys() if name in containers and discovery_info[CONF_CONTAINERS][name][CONF_CONTAINER_SWITCH]]
-
+    switches = [ContainerSwitch(host_name, api, name)
+            for name in discovery_info[CONF_CONTAINERS].keys()
+            if discovery_info[CONF_CONTAINERS][name][CONF_CONTAINER_SWITCH]]
 
     if switches:
         async_add_entities(switches)
@@ -59,16 +58,18 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
 
 class ContainerSwitch(SwitchDevice):
-    def __init__(self, clientname, container):
+    def __init__(self, clientname, api, name):
         self._clientname = clientname
-        self._container = container
+        self._api = api
+        self._name = name
 
-        self._state = False
+        self._container = None
+        self._state = None
 
     @property
     def name(self):
         """Return the name of the sensor."""
-        return "{} {}".format(self._clientname, self._container.get_name())
+        return "{} {}".format(self._clientname, self._name)
 
     @property
     def should_poll(self):
@@ -85,23 +86,47 @@ class ContainerSwitch(SwitchDevice):
         }
 
     @property
+    def available(self):
+        """Could the device be accessed during the last update call."""
+        return self._state is not None
+
+    @property
     def is_on(self):
         return self._state
 
-    def turn_on(self, **kwargs):
-        self._container.start()
+    async def async_turn_on(self):
+        """Turn Mill unit on."""
+        if self._container:
+            try:
+                self._container.start()
+            except Exception as ex:
+                _LOGGER.info("Cannot start container ({})".format(ex))
 
-    def turn_off(self, **kwargs):
-        self._container.stop()
+    async def async_turn_off(self):
+        """Turn Mill unit off."""
+        if self._container:
+            try:
+                self._container.stop()
+            except Exception as ex:
+                _LOGGER.info("Cannot stop container ({})".format(ex))
 
     async def async_added_to_hass(self):
         """Register callbacks."""
-        self._container.register_callback(self.event_callback)
+        self._container = self._api.watch_container(
+            self._name, self.event_callback)
+        self.event_callback()
 
     def event_callback(self):
         """Update callback."""
 
-        state = self._container.get_info()[CONTAINER_INFO_STATUS] == 'running'
+        state = None
+        try:
+            info = self._container.get_info()
+        except Exception as ex:
+            _LOGGER.info("Cannot request container info ({})".format(ex))
+        else:
+            state = info.get(CONTAINER_INFO_STATUS) == 'running'
+
         if state is not self._state:
             self._state = state
             self.async_schedule_update_ha_state()
