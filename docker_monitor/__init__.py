@@ -23,7 +23,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.discovery import load_platform
 from homeassistant.util import slugify as util_slugify
 
-VERSION = '0.0.2'
+VERSION = '0.0.3'
 
 REQUIREMENTS = ['docker==3.7.0', 'python-dateutil==2.7.5']
 
@@ -167,6 +167,7 @@ class DockerAPI:
 
         self._containers = {}
         self._event_callback_listeners = []
+        self._events = None
 
         try:
             self._client = docker.DockerClient(base_url=self._base_url)
@@ -181,7 +182,8 @@ class DockerAPI:
 
     def exit(self):
         _LOGGER.info("Stopping threads for Docker monitor")
-        self._events.close()
+        if self._events:
+            self._events.close()
         for container in self._containers.values():
             container.exit()
 

@@ -23,7 +23,7 @@ from homeassistant.const import (
 from homeassistant.helpers.entity import Entity
 from homeassistant.util import Throttle
 
-VERSION = '0.0.2'
+VERSION = '0.0.3'
 
 _LOGGER = logging.getLogger(__name__)
 

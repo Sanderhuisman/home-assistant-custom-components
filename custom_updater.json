@@ -1,7 +1,7 @@
 {
    "docker_monitor": {
       "updated_at": "2019-02-19",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "local_location": "custom_components/docker_monitor/__init__.py",
       "remote_location": "https://raw.githubusercontent.com/Sanderhuisman/home-assistant-custom-components/master/docker_monitor/__init__.py",
       "changelog": "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
@@ -9,7 +9,7 @@
    },
    "docker_monitor.sensor": {
       "updated_at": "2019-02-19",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "local_location": "custom_components/docker_monitor/sensor.py",
       "remote_location": "https://raw.githubusercontent.com/Sanderhuisman/home-assistant-custom-components/master/docker_monitor/sensor.py",
       "changelog": "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
@@ -17,7 +17,7 @@
    },
    "docker_monitor.switch": {
       "updated_at": "2019-02-19",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "local_location": "custom_components/docker_monitor/switch.py",
       "remote_location": "https://raw.githubusercontent.com/Sanderhuisman/home-assistant-custom-components/master/docker_monitor/switch.py",
       "changelog": "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
@@ -25,7 +25,7 @@
    },
    "eetlijst.sensor": {
       "updated_at": "2019-02-19",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "local_location": "custom_components/sensor/eetlijst.py",
       "remote_location": "https://raw.githubusercontent.com/Sanderhuisman/home-assistant-custom-components/master/sensor/eetlijst.py",
       "changelog": "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",
@@ -33,7 +33,7 @@
    },
    "luftdaten.sensor": {
       "updated_at": "2019-02-19",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "local_location": "custom_components/sensor/luftdaten_cu.py",
       "remote_location": "https://raw.githubusercontent.com/Sanderhuisman/home-assistant-custom-components/master/sensor/luftdaten_cu.py",
       "changelog": "https://github.com/Sanderhuisman/home-assistant-custom-components/releases/latest",

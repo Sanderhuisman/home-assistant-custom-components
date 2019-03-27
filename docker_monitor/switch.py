@@ -25,7 +25,7 @@ from custom_components.docker_monitor import (
     DOCKER_HANDLE
 )
 
-VERSION = '0.0.2'
+VERSION = '0.0.3'
 
 DEPENDENCIES = ['docker_monitor']
 

@@ -65,7 +65,7 @@ docker_monitor:
 | --------------------------------- | ------------------------------- | ----- |
 | utilization_version               | Docker version                  | -     |
 | container_status                  | Container status                | -     |
-| container_up_time                 | Container start time            | -     |
+| container_uptime                  | Container start time            | -     |
 | container_image                   | Container image                 | -     |
 | container_cpu_percentage_usage    | CPU usage                       | %     |
 | container_memory_usage            | Memory usage                    | MB    |
