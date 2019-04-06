@@ -5,7 +5,9 @@ For more details about this component, please refer to the documentation at
 https://github.com/Sanderhuisman/home-assistant-custom-components
 '''
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime
+from dateutil import relativedelta
+import pytz
 
 import homeassistant.util.dt as dt_util
 from homeassistant.const import (
@@ -31,6 +33,7 @@ from custom_components.docker_monitor import (
     CONTAINER_MONITOR_NETWORK_SPEED_UP,
     CONTAINER_MONITOR_NETWORK_TOTAL_UP,
     CONTAINER_MONITOR_STATUS,
+    CONTAINER_MONITOR_STATE,
     CONTAINER_MONITOR_UPTIME,
     DATA_CONFIG,
     DATA_DOCKER_API,
@@ -174,6 +177,26 @@ class DockerContainerSensor(Entity):
             # Info
             if self._var_id == CONTAINER_MONITOR_STATUS:
                 state = stats['info']['status']
+            if self._var_id == CONTAINER_MONITOR_STATE:
+
+                # Up 6 days
+                # Up 6 days (Paused)
+                # Exited (0) 2 months ago
+                # Restarting (99) 5 seconds ago
+
+                if stats['info']['status'] == 'running':
+                    state = 'Up {}'.format(self.calcdockerformat(stats.get('info', {}).get('started')))
+                elif stats['info']['status'] == 'exited':
+                    state = 'Exited ({}) {} ago'.format(stats['info']['exitcode'], self.calcdockerformat(stats.get('info', {}).get('ended')))
+                elif stats['info']['status'] == 'created':
+                    state = 'Created {} ago'.format(self.calcdockerformat(stats.get('info', {}).get('created')))
+                elif stats['info']['status'] == 'restarting':
+                    state = 'Restarting'
+                elif stats['info']['status'] == 'paused':
+                    state = 'Up {} (Paused)'.format(self.calcdockerformat(stats.get('info', {}).get('started')))
+                else:
+                    state = 'None ({})'.format(stats['info']['status'])
+
             elif self._var_id == CONTAINER_MONITOR_UPTIME:
                 up_time = stats.get('info', {}).get('started')
                 if up_time is not None:
@@ -271,3 +294,43 @@ class DockerContainerSensor(Entity):
     def device_state_attributes(self):
         """Return the state attributes."""
         return self._attributes
+
+    @staticmethod
+    def calcdockerformat(dt):
+
+        if dt == None:
+            return 'None'
+
+        delta = relativedelta.relativedelta(datetime.now(pytz.utc), dt)
+
+        if delta.years != 0:
+            if delta.years == 1:
+                return '{} {}'.format(delta.years, 'year')
+            else:
+                return '{} {}'.format(delta.years, 'years')
+        elif delta.months != 0:
+            if delta.months == 1:
+                return '{} {}'.format(delta.months, 'month')
+            else:
+                return '{} {}'.format(delta.months, 'months')
+        elif delta.days != 0:
+            if delta.days == 1:
+                return '{} {}'.format(delta.days, 'day')
+            else:
+                return '{} {}'.format(delta.days, 'days')
+        elif delta.hours != 0:
+            if delta.hours == 1:
+                return '{} {}'.format(delta.hours, 'hour')
+            else:
+                return '{} {}'.format(delta.hours, 'hours')
+        elif delta.minutes != 0:
+            if delta.minutes == 1:
+                return '{} {}'.format(delta.minutes, 'minute')
+            else:
+                return '{} {}'.format(delta.minutes, 'minutes')
+        else:
+            if delta.seconds == 1:
+                return '{} {}'.format(delta.seconds, 'second')
+            else:
+                return '{} {}'.format(delta.seconds, 'seconds')
+
