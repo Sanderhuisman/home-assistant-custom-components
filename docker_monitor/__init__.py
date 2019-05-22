@@ -25,7 +25,7 @@ from homeassistant.util import slugify as util_slugify
 
 VERSION = '0.0.3'
 
-REQUIREMENTS = ['docker==3.7.0', 'python-dateutil==2.7.5']
+REQUIREMENTS = ['docker==3.7.0', 'python-dateutil==2.7.5', 'pytz']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -57,6 +57,7 @@ CONF_CONTAINERS = 'containers'
 UTILISATION_MONITOR_VERSION = 'utilization_version'
 
 CONTAINER_MONITOR_STATUS = 'container_status'
+CONTAINER_MONITOR_STATE = 'container_state'
 CONTAINER_MONITOR_UPTIME = 'container_uptime'
 CONTAINER_MONITOR_IMAGE = 'container_image'
 CONTAINER_MONITOR_CPU_PERCENTAGE = 'container_cpu_percentage_usage'
@@ -73,6 +74,7 @@ _UTILISATION_MON_COND = {
 
 _CONTAINER_MON_COND = {
     CONTAINER_MONITOR_STATUS: ['Status', None, 'mdi:checkbox-marked-circle-outline', None],
+    CONTAINER_MONITOR_STATE: ['State', None, 'mdi:checkbox-marked-circle-outline', None],
     CONTAINER_MONITOR_UPTIME: ['Up Time', '', 'mdi:clock', 'timestamp'],
     CONTAINER_MONITOR_IMAGE: ['Image', None, 'mdi:information-outline', None],
     CONTAINER_MONITOR_CPU_PERCENTAGE: ['CPU use', '%', 'mdi:chip', None],
@@ -285,6 +287,8 @@ class DockerContainerAPI:
             'status': self._container.attrs['State']['Status'],
             'created': parser.parse(self._container.attrs['Created']),
             'started': parser.parse(self._container.attrs['State']['StartedAt']),
+            'ended': parser.parse(self._container.attrs['State']['FinishedAt']),
+            'exitcode': self._container.attrs['State']['ExitCode'],
         }
 
         return info
