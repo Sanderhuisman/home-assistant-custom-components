@@ -1,0 +1,19 @@
+start:
+  description: start a docker container
+  fields:
+    container_name:
+      description: name of the container to start.
+      example: docker_nginx_1
+stop:
+  description: stop a docker container
+  fields:
+    container_name:
+      description: name of the container to stop.
+      example: docker_nginx_1
+restart:
+  description: restart a docker container
+  fields:
+    container_name:
+      description: name of the container to restart.
+      example: docker_nginx_1
+  
