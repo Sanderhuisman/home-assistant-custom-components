@@ -267,10 +267,8 @@ class DockerContainerAPI:
     def stats(self, callback, interval=10):
         if not self._subscribers:
             self._stopper = threading.Event()
-            thread = threading.Thread(target=self._runnable, kwargs={
-                                      'interval': interval})
-            self._thread = thread
-            thread.start()
+            self._thread = threading.Thread(target=self._runnable, kwargs={'interval': interval})
+            self._thread.start()
 
         if callback not in self._subscribers:
             self._subscribers.append(callback)
@@ -305,14 +303,11 @@ class DockerContainerAPI:
     def _runnable(self, interval):
         from dateutil import parser
 
-        stream = self._container.stats(stream=True, decode=True)
-
         cpu_old = {}
         network_old = {}
-        for raw in stream:
-            if self._stopper.isSet():
-                break
+        while not self._stopper.isSet():
 
+            raw = self._container.stats(stream=False)
             stats = {}
 
             stats['info'] = self.get_info()
