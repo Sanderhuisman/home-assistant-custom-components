@@ -9,7 +9,7 @@ import logging
 from homeassistant.components.switch import (
     ENTITY_ID_FORMAT,
     PLATFORM_SCHEMA,
-    SwitchDevice
+    SwitchEntity
 )
 from homeassistant.const import (
     ATTR_ATTRIBUTION,
@@ -49,7 +49,7 @@ def setup_platform(hass, config, add_devices_callback, discovery_info=None):
         return False
 
 
-class ContainerSwitch(SwitchDevice):
+class ContainerSwitch(SwitchEntity):
     def __init__(self, api, clientname, container_name):
         self._api = api
         self._clientname = clientname
