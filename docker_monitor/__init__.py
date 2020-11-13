@@ -56,6 +56,7 @@ CONF_CONTAINERS = 'containers'
 
 UTILISATION_MONITOR_VERSION = 'utilization_version'
 
+CONTAINER_NAME = 'container_name'
 CONTAINER_MONITOR_STATUS = 'container_status'
 CONTAINER_MONITOR_UPTIME = 'container_uptime'
 CONTAINER_MONITOR_IMAGE = 'container_image'
@@ -105,6 +106,12 @@ CONFIG_SCHEMA = vol.Schema({
     })
 }, extra=vol.ALLOW_EXTRA)
 
+SERVICE_START = 'start'
+SERVICE_STOP = 'stop'
+SERVICE_RESTART = 'restart'
+SERVICE_SCHEMA = vol.Schema({
+    vol.Required(CONTAINER_NAME):  cv.string
+})
 
 def setup(hass, config):
     _LOGGER.info("Settings: {}".format(config[DOMAIN]))
@@ -147,6 +154,29 @@ def setup(hass, config):
 
         if config[DOMAIN][CONF_EVENTS]:
             api.events(event_listener)
+
+
+        def handle_start(call):
+            container_name = call.data[CONTAINER_NAME]
+            container = api.get_container(container_name)
+            if container:
+                container.start()
+
+        def handle_stop(call):
+            container_name = call.data[CONTAINER_NAME]
+            container = api.get_container(container_name)
+            if container:
+                container.stop()
+
+        def handle_restart(call):
+            container_name = call.data[CONTAINER_NAME]
+            container = api.get_container(container_name)
+            if container:
+                container.restart()
+
+        hass.services.register(DOMAIN, SERVICE_START, handle_start, SERVICE_SCHEMA)
+        hass.services.register(DOMAIN, SERVICE_STOP, handle_stop, SERVICE_SCHEMA)
+        hass.services.register(DOMAIN, SERVICE_RESTART, handle_restart, SERVICE_SCHEMA)
 
         return True
 
@@ -296,6 +326,10 @@ class DockerContainerAPI:
     def stop(self, timeout=10):
         _LOGGER.info("Stop container {}".format(self._name))
         self._container.stop(timeout=timeout)
+
+    def restart(self):
+        _LOGGER.info("Restart container {}".format(self._name))
+        self._container.restart()
 
     def _notify(self, message):
         _LOGGER.debug("Send notify for container {}".format(self._name))
